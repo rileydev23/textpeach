@@ -1,0 +1,341 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TextPeach.ViewModels"
+             xmlns:views="using:TextPeach.Views"
+             xmlns:ae="using:AvaloniaEdit"
+             x:Class="TextPeach.Views.ProjectView"
+             x:DataType="vm:ProjectViewModel">
+  <UserControl.KeyBindings>
+    <KeyBinding Gesture="F5" Command="{Binding RefreshCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+F" Command="{Binding FocusSearchCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+E" Command="{Binding FocusFilterCommand}" />
+    <KeyBinding Gesture="Ctrl+G" Command="{Binding GoToLineCommand}" />
+    <KeyBinding Gesture="Ctrl+E" Command="{Binding ToggleEditCommand}" />
+    <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCurrentCommand}" />
+    <KeyBinding Gesture="Ctrl+PageDown" Command="{Binding NextDocCommand}" />
+    <KeyBinding Gesture="Ctrl+PageUp" Command="{Binding PreviousDocCommand}" />
+    <KeyBinding Gesture="Ctrl+OemPlus" Command="{Binding ZoomInCommand}" />
+    <KeyBinding Gesture="Ctrl+Add" Command="{Binding ZoomInCommand}" />
+    <KeyBinding Gesture="Ctrl+OemMinus" Command="{Binding ZoomOutCommand}" />
+    <KeyBinding Gesture="Ctrl+Subtract" Command="{Binding ZoomOutCommand}" />
+    <KeyBinding Gesture="Ctrl+D0" Command="{Binding ZoomResetCommand}" />
+    <KeyBinding Gesture="Alt+Z" Command="{Binding ToggleWrapCommand}" />
+  </UserControl.KeyBindings>
+
+  <DockPanel>
+    <!-- Toolbar -->
+    <Border DockPanel.Dock="Top" Background="#26272b" BorderBrush="#3a3c42" BorderThickness="0,0,0,1" Padding="8,6">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
+          <Button Content="Abrir con la app predeterminada" Command="{Binding OpenWithDefaultCommand}" IsEnabled="{Binding HasFile}"
+                  ToolTip.Tip="Abre el archivo actual con la aplicación que el sistema tiene asociada" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="4">
+          <Button Content="Ir a archivo" Command="{Binding QuickOpenFileCommand}" ToolTip.Tip="Ctrl+P" />
+          <Button Content="Buscar en proyecto" Command="{Binding FocusSearchCommand}" ToolTip.Tip="Ctrl+Shift+F" />
+          <Button Content="Ir a línea" Command="{Binding GoToLineCommand}" IsEnabled="{Binding HasFile}" ToolTip.Tip="Ctrl+G" />
+          <Border Width="1" Background="#3a3c42" Margin="6,2" />
+          <Button Content="Resumen" Command="{Binding ShowSummaryCommand}" />
+          <Button Content="Refrescar" Command="{Binding RefreshCommand}" ToolTip.Tip="F5" />
+          <TextBlock Text="{Binding FilesText}" FontWeight="SemiBold" Foreground="#6cc070" VerticalAlignment="Center" Margin="14,0,0,0" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- Status bar -->
+    <Border DockPanel.Dock="Bottom" Background="#18191c" BorderBrush="#3a3c42" BorderThickness="0,1,0,0" Padding="10,3">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="14">
+          <StackPanel Orientation="Horizontal" Spacing="14" DataContext="{Binding SelectedFile}" IsVisible="{Binding $parent[UserControl].((vm:ProjectViewModel)DataContext).HasFile}">
+            <TextBlock Classes="dim" Text="{Binding $parent[UserControl].((vm:ProjectViewModel)DataContext).CaretText}" VerticalAlignment="Center" />
+            <TextBlock x:DataType="vm:OpenFileViewModel" Classes="dim" Text="{Binding Indentation}" VerticalAlignment="Center" />
+            <TextBlock x:DataType="vm:OpenFileViewModel" Classes="dim" Text="{Binding LineEnding}" VerticalAlignment="Center" />
+            <TextBlock x:DataType="vm:OpenFileViewModel" Classes="dim" Text="{Binding EncodingName}" VerticalAlignment="Center" />
+            <TextBlock x:DataType="vm:OpenFileViewModel" Text="{Binding LanguageName}" Foreground="{Binding LanguageBrush}" VerticalAlignment="Center" />
+            <TextBlock x:DataType="vm:OpenFileViewModel" Text="Solo lectura" Classes="dim" IsVisible="{Binding !IsEditing}" VerticalAlignment="Center" />
+            <TextBlock x:DataType="vm:OpenFileViewModel" Text="Editando" Foreground="#e0a24a" FontWeight="SemiBold" IsVisible="{Binding IsEditing}" VerticalAlignment="Center" />
+          </StackPanel>
+          <Button Classes="flat" Content="Ajuste de línea" Command="{Binding ToggleWrapCommand}" Foreground="#8a8d93" ToolTip.Tip="Alt+Z" Padding="4,0" />
+          <Button Classes="flat" Content="¶" Command="{Binding ToggleWhitespaceCommand}" Foreground="#8a8d93" ToolTip.Tip="Mostrar espacios, tabs y fines de línea" Padding="4,0" />
+          <TextBlock Classes="dim" Text="{Binding Settings.FontSize, StringFormat='{}{0:0} px'}" VerticalAlignment="Center" ToolTip.Tip="Ctrl + / Ctrl − / Ctrl+0" />
+        </StackPanel>
+        <TextBlock Classes="dim" Text="{Binding Notice}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+      </DockPanel>
+    </Border>
+
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="260" MinWidth="160" />
+        <ColumnDefinition Width="4" />
+        <ColumnDefinition Width="*" MinWidth="360" />
+        <ColumnDefinition Width="4" />
+        <ColumnDefinition Width="290" MinWidth="200" />
+      </Grid.ColumnDefinitions>
+
+      <!-- Sidebar: explorer / search -->
+      <Border Background="#222327">
+        <DockPanel>
+          <Grid DockPanel.Dock="Top" ColumnDefinitions="*,*" Margin="0,0,0,2">
+            <Button Classes="seg" Classes.active="{Binding !IsSearchMode}" Content="Archivos" Command="{Binding FocusFilterCommand}" />
+            <Button Grid.Column="1" Classes="seg" Classes.active="{Binding IsSearchMode}" Content="Buscar" Command="{Binding FocusSearchCommand}" />
+          </Grid>
+
+          <Panel>
+          <!-- Explorer -->
+          <DockPanel IsVisible="{Binding !IsSearchMode}">
+            <TextBox x:Name="FilterBox" DockPanel.Dock="Top" HorizontalAlignment="Stretch" Margin="6,4,6,6" Text="{Binding FileFilter}" Watermark="Filtrar archivos…" />
+            <Panel>
+              <TreeView x:Name="FileTree" ItemsSource="{Binding Tree}" SelectedItem="{Binding SelectedNode}" IsVisible="{Binding !IsFiltering}">
+                <TreeView.Styles>
+                  <Style Selector="TreeViewItem" x:DataType="vm:FileNode">
+                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                  </Style>
+                </TreeView.Styles>
+                <TreeView.ItemTemplate>
+                  <TreeDataTemplate x:DataType="vm:FileNode" ItemsSource="{Binding Children}">
+                    <StackPanel Orientation="Horizontal" Spacing="6" ToolTip.Tip="{Binding RelPath}">
+                      <TextBlock Text="{Binding Glyph}" Foreground="{Binding GlyphBrush}" FontSize="9" VerticalAlignment="Center" IsVisible="{Binding !IsPlaceholder}" />
+                      <TextBlock Text="{Binding Name}" Foreground="{Binding Foreground}" VerticalAlignment="Center" />
+                    </StackPanel>
+                  </TreeDataTemplate>
+                </TreeView.ItemTemplate>
+              </TreeView>
+              <ListBox x:Name="HitList" ItemsSource="{Binding FilterHits}" SelectedItem="{Binding SelectedHit}" IsVisible="{Binding IsFiltering}">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:FileHit">
+                    <DockPanel Margin="8,3" ToolTip.Tip="{Binding RelPath}">
+                      <TextBlock DockPanel.Dock="Left" Text="●" Foreground="{Binding GlyphBrush}" FontSize="9" VerticalAlignment="Center" Margin="0,0,6,0" />
+                      <StackPanel>
+                        <TextBlock Text="{Binding FileName}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding Directory}" Classes="dim" FontSize="11" TextTrimming="CharacterEllipsis" />
+                      </StackPanel>
+                    </DockPanel>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </Panel>
+          </DockPanel>
+
+          <!-- Project-wide search -->
+          <DockPanel IsVisible="{Binding IsSearchMode}">
+            <StackPanel DockPanel.Dock="Top" Margin="6,4,6,4" Spacing="6">
+              <TextBox x:Name="SearchBox" Text="{Binding SearchText}" Watermark="Buscar en todos los archivos…" />
+              <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="3">
+                  <ToggleButton Classes="chip" Content="Aa" IsChecked="{Binding MatchCase}" ToolTip.Tip="Distinguir mayúsculas" />
+                  <ToggleButton Classes="chip" Content="ab|" IsChecked="{Binding WholeWord}" ToolTip.Tip="Palabra completa" />
+                  <ToggleButton Classes="chip" Content=".*" IsChecked="{Binding UseRegex}" ToolTip.Tip="Expresión regular" />
+                </StackPanel>
+                <TextBox Text="{Binding IncludeGlob}" Watermark="Incluir: *.cs, src/**" FontSize="12" Margin="0,0,6,0" MinHeight="26" Padding="6,3" />
+              </DockPanel>
+              <DockPanel>
+                <ProgressBar DockPanel.Dock="Right" IsIndeterminate="True" IsVisible="{Binding IsSearching}" Width="50" Height="4" />
+                <TextBlock Classes="dim" FontSize="11" Text="{Binding SearchSummary}" TextWrapping="Wrap" />
+              </DockPanel>
+            </StackPanel>
+            <ListBox x:Name="SearchList" ItemsSource="{Binding SearchRows}" SelectedItem="{Binding SelectedSearchRow}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:SearchRowVM">
+                  <Panel>
+                    <DockPanel IsVisible="{Binding IsFileHeader}" Margin="6,6,8,2" ToolTip.Tip="{Binding RelPath}">
+                      <TextBlock DockPanel.Dock="Left" Text="●" Foreground="{Binding GlyphBrush}" FontSize="9" VerticalAlignment="Center" Margin="0,0,6,0" />
+                      <Border DockPanel.Dock="Right" Background="#3a3c42" CornerRadius="7" Padding="6,0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Detail}" FontSize="10" />
+                      </Border>
+                      <TextBlock Text="{Binding Text}" FontSize="12" FontWeight="SemiBold" TextTrimming="LeadingCharacterEllipsis" />
+                    </DockPanel>
+                    <DockPanel IsVisible="{Binding IsMatch}" Margin="18,1,8,1">
+                      <TextBlock DockPanel.Dock="Left" Text="{Binding LineText}" Classes="dim mono" FontSize="11" MinWidth="30" VerticalAlignment="Center" />
+                      <StackPanel Orientation="Horizontal" ClipToBounds="True">
+                        <TextBlock Text="{Binding Before}" Classes="mono" FontSize="11" Foreground="#a9acb2" />
+                        <Border Background="#5a4318" CornerRadius="2">
+                          <TextBlock Text="{Binding Match}" Classes="mono" FontSize="11" Foreground="#ffd27a" />
+                        </Border>
+                        <TextBlock Text="{Binding After}" Classes="mono" FontSize="11" Foreground="#a9acb2" />
+                      </StackPanel>
+                    </DockPanel>
+                    <TextBlock IsVisible="{Binding IsNote}" Text="{Binding Text}" Classes="dim" FontStyle="Italic" Margin="8,6" TextWrapping="Wrap" />
+                  </Panel>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </DockPanel>
+          </Panel>
+        </DockPanel>
+      </Border>
+      <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
+
+      <!-- Center: open files -->
+      <DockPanel Grid.Column="2">
+        <Border DockPanel.Dock="Top" Background="#1e1f22" BorderBrush="#3a3c42" BorderThickness="0,0,0,1">
+          <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+            <ListBox x:Name="DocTabs" Classes="doctabs" ItemsSource="{Binding Docs}" SelectedItem="{Binding SelectedDoc}">
+              <ListBox.ItemsPanel>
+                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+              </ListBox.ItemsPanel>
+              <ListBox.ContextMenu>
+                <ContextMenu>
+                  <MenuItem Header="Cerrar los demás" Command="{Binding CloseOthersCommand}" />
+                  <MenuItem Header="Cerrar todos" Command="{Binding CloseAllCommand}" />
+                </ContextMenu>
+              </ListBox.ContextMenu>
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:TabViewModel">
+                  <StackPanel Orientation="Horizontal" Margin="10,5,4,5" Spacing="6" ToolTip.Tip="{Binding ToolTip}">
+                    <TextBlock Text="{Binding Title}" FontSize="12" VerticalAlignment="Center" />
+                    <Button Classes="flat" Content="✕" Command="{Binding CloseCommand}"
+                            IsVisible="{Binding Closable}" FontSize="9" Padding="4,1"
+                            Foreground="#8a8d93" VerticalAlignment="Center" />
+                  </StackPanel>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </ScrollViewer>
+        </Border>
+
+        <Panel>
+          <views:SummaryView DataContext="{Binding Summary}" IsVisible="{Binding $parent[UserControl].((vm:ProjectViewModel)DataContext).IsSummary}" />
+
+          <Panel DataContext="{Binding SelectedFile}" IsVisible="{Binding $parent[UserControl].((vm:ProjectViewModel)DataContext).HasFile}">
+            <DockPanel x:DataType="vm:OpenFileViewModel">
+              <!-- File header -->
+              <Border DockPanel.Dock="Top" Background="#26272b" BorderBrush="#3a3c42" BorderThickness="0,0,0,1" Padding="10,5">
+                <DockPanel>
+                  <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
+                    <StackPanel Orientation="Horizontal" IsVisible="{Binding CanRender}" Margin="0,0,6,0">
+                      <Button Classes="mode left" Classes.active="{Binding IsRendered}" Content="Renderizada" Command="{Binding ShowRenderedCommand}" ToolTip.Tip="Muestra el documento formateado" />
+                      <Button Classes="mode right" Classes.active="{Binding !IsRendered}" Content="Código" Command="{Binding ShowCodeCommand}" ToolTip.Tip="Muestra el texto fuente con números de línea" />
+                    </StackPanel>
+                    <Button Classes="warn" Content="✎ Editar" Command="{Binding EditCommand}" IsVisible="{Binding CanEdit}" ToolTip.Tip="Habilita la edición de este archivo (Ctrl+E)" />
+                    <Button Classes="accent" Content="Guardar" Command="{Binding SaveCommand}" IsVisible="{Binding IsEditing}" ToolTip.Tip="Ctrl+S" />
+                    <Button Content="Terminar edición" Command="{Binding FinishEditingCommand}" IsVisible="{Binding IsEditing}" ToolTip.Tip="Vuelve a solo lectura (Ctrl+E)" />
+                    <Button Content="⋯" Padding="10,4">
+                      <Button.Flyout>
+                        <MenuFlyout Placement="BottomEdgeAlignedRight">
+                          <MenuItem Header="Copiar ruta completa" Command="{Binding $parent[UserControl].((vm:ProjectViewModel)DataContext).CopyPathCommand}" CommandParameter="full" />
+                          <MenuItem Header="Copiar ruta relativa" Command="{Binding $parent[UserControl].((vm:ProjectViewModel)DataContext).CopyPathCommand}" CommandParameter="rel" />
+                          <MenuItem Header="Revelar en el árbol" Command="{Binding $parent[UserControl].((vm:ProjectViewModel)DataContext).RevealCurrentCommand}" />
+                          <Separator />
+                          <MenuItem Header="Abrir con la aplicación predeterminada" Command="{Binding $parent[UserControl].((vm:ProjectViewModel)DataContext).OpenWithDefaultCommand}" />
+                          <Separator />
+                          <MenuItem Header="Recargar desde el disco" Command="{Binding ReloadFromDiskCommand}" />
+                        </MenuFlyout>
+                      </Button.Flyout>
+                    </Button>
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" ClipToBounds="True">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" ToolTip.Tip="{Binding FullPath}">
+                      <TextBlock Text="{Binding Directory}" Classes="dim" />
+                      <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" />
+                    </StackPanel>
+                    <Border Background="#2d2e33" BorderBrush="#3a3c42" BorderThickness="1" CornerRadius="3" Padding="6,0" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding LanguageName}" Foreground="{Binding LanguageBrush}" FontSize="11" />
+                    </Border>
+                    <TextBlock Text="{Binding InfoText}" Classes="dim" FontSize="11" VerticalAlignment="Center" />
+                  </StackPanel>
+                </DockPanel>
+              </Border>
+
+              <!-- Edit-mode banner -->
+              <Border DockPanel.Dock="Top" Background="#5a4318" Padding="10,5" IsVisible="{Binding IsEditing}">
+                <TextBlock Text="Modo edición — los cambios se escriben en el disco solo al pulsar Guardar (Ctrl+S)." FontWeight="SemiBold" VerticalAlignment="Center" />
+              </Border>
+              <!-- Changed on disk -->
+              <Border DockPanel.Dock="Top" Background="#25364d" Padding="10,5" IsVisible="{Binding ChangedOnDisk}">
+                <DockPanel>
+                  <Button DockPanel.Dock="Right" Content="Recargar" Command="{Binding ReloadFromDiskCommand}" />
+                  <TextBlock Text="El archivo cambió en el disco mientras lo editabas." VerticalAlignment="Center" />
+                </DockPanel>
+              </Border>
+
+              <Panel>
+                <ae:TextEditor x:Name="Editor" IsVisible="{Binding IsCodeVisible}" ShowLineNumbers="True" IsReadOnly="True"
+                               HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" />
+                <ScrollViewer x:Name="RenderedHost" IsVisible="{Binding IsRenderedVisible}" Background="#1e1f22"
+                              HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" />
+                <Grid IsVisible="{Binding IsImage}" RowDefinitions="*,Auto" Background="#1b1c1f">
+                  <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                    <Border Background="#26272b" BorderBrush="#3a3c42" BorderThickness="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="20">
+                      <Image Source="{Binding Image}" Stretch="None" />
+                    </Border>
+                  </ScrollViewer>
+                  <TextBlock Grid.Row="1" Text="{Binding ImageInfo}" Classes="dim" HorizontalAlignment="Center" Margin="0,4,0,8" />
+                </Grid>
+                <StackPanel IsVisible="{Binding IsNote}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10">
+                  <TextBlock Text="{Binding NoteText}" Classes="dim" FontStyle="Italic" HorizontalAlignment="Center" TextWrapping="Wrap" MaxWidth="460" TextAlignment="Center" />
+                  <Button Content="Abrir con la aplicación predeterminada" HorizontalAlignment="Center"
+                          Command="{Binding $parent[UserControl].((vm:ProjectViewModel)DataContext).OpenWithDefaultCommand}" />
+                </StackPanel>
+                <TextBlock IsVisible="{Binding IsLoading}" Text="Cargando…" Classes="dim" HorizontalAlignment="Center" VerticalAlignment="Center" />
+              </Panel>
+            </DockPanel>
+          </Panel>
+        </Panel>
+      </DockPanel>
+      <GridSplitter Grid.Column="3" ResizeDirection="Columns" />
+
+      <!-- Right: analysis of the current file -->
+      <Border Grid.Column="4" Background="#222327">
+        <Panel>
+          <StackPanel IsVisible="{Binding !HasFile}" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="20" Spacing="6">
+            <TextBlock Text="Análisis" FontWeight="SemiBold" HorizontalAlignment="Center" />
+            <TextBlock Classes="dim" Text="Abre un archivo para ver sus métricas, su estructura y sus marcadores." TextWrapping="Wrap" TextAlignment="Center" MaxWidth="220" />
+          </StackPanel>
+          <Panel DataContext="{Binding SelectedFile}" IsVisible="{Binding $parent[UserControl].((vm:ProjectViewModel)DataContext).HasFile}">
+            <Grid x:DataType="vm:OpenFileViewModel" RowDefinitions="Auto,Auto,2*,Auto,*">
+              <StackPanel Margin="0,0,0,4">
+                <TextBlock Classes="section" Text="Análisis" Margin="10,8,10,6" />
+                <ItemsControl ItemsSource="{Binding Metrics}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:MetricRow">
+                      <Grid ColumnDefinitions="*,Auto" Margin="10,1" ToolTip.Tip="{Binding Hint}">
+                        <TextBlock Text="{Binding Label}" Classes="dim" FontSize="12" />
+                        <TextBlock Grid.Column="1" Text="{Binding Value}" Foreground="{Binding ValueBrush}" FontSize="12" TextTrimming="CharacterEllipsis" Margin="8,0,0,0" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+
+              <Border Grid.Row="1" BorderBrush="#3a3c42" BorderThickness="0,1,0,0" Padding="10,6">
+                <TextBlock Classes="section" Text="{Binding OutlineHeader}" />
+              </Border>
+              <Panel Grid.Row="2">
+                <ListBox x:Name="OutlineList" ItemsSource="{Binding Outline}">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:OutlineRowVM">
+                      <DockPanel Margin="{Binding Pad}">
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding LineText}" Classes="dim" FontSize="10" VerticalAlignment="Center" Margin="6,0,0,0" />
+                        <TextBlock DockPanel.Dock="Left" Text="{Binding Letter}" Foreground="{Binding LetterBrush}" FontWeight="Bold" FontSize="11" MinWidth="18" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding Name}" FontWeight="{Binding Weight}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                      </DockPanel>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+                <TextBlock Classes="dim" FontSize="12" Text="Sin símbolos detectados" Margin="10,4" IsVisible="{Binding !Outline.Count}" />
+              </Panel>
+
+              <Border Grid.Row="3" BorderBrush="#3a3c42" BorderThickness="0,1,0,0" Padding="10,6">
+                <TextBlock Classes="section" Text="{Binding MarkersHeader}" ToolTip.Tip="TODO, FIXME, HACK, XXX, BUG, NOTE…" />
+              </Border>
+              <Panel Grid.Row="4">
+                <ListBox x:Name="MarkerList" ItemsSource="{Binding Markers}">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:MarkerRowVM">
+                      <DockPanel Margin="10,2,8,2" ToolTip.Tip="{Binding Text}">
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding LineText}" Classes="dim" FontSize="10" VerticalAlignment="Center" Margin="6,0,0,0" />
+                        <TextBlock DockPanel.Dock="Left" Text="{Binding Tag}" Foreground="{Binding TagBrush}" FontWeight="Bold" FontSize="10" MinWidth="44" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding Text}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                      </DockPanel>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+                <TextBlock Classes="dim" FontSize="12" Text="Sin marcadores" Margin="10,4" IsVisible="{Binding !Markers.Count}" />
+              </Panel>
+            </Grid>
+          </Panel>
+        </Panel>
+      </Border>
+    </Grid>
+  </DockPanel>
+</UserControl>

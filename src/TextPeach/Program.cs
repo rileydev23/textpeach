@@ -1,0 +1,20 @@
+using Avalonia;
+
+namespace TextPeach;
+
+internal static class Program
+{
+    [STAThread]
+    public static void Main(string[] args)
+    {
+        // A second launch forwards its paths to the running window and exits.
+        if (!Services.SingleInstance.TryBecomePrimary(args)) return;
+        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+    }
+
+    public static AppBuilder BuildAvaloniaApp() =>
+        AppBuilder.Configure<App>()
+            .UsePlatformDetect()
+            .With(new Win32PlatformOptions { RenderingMode = new[] { Win32RenderingMode.Software } })
+            .LogToTrace();
+}
