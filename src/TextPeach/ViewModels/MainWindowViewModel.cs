@@ -132,8 +132,18 @@ public partial class MainWindowViewModel : ObservableObject
         if (int.TryParse(number, out var n) && n >= 1 && n <= Tabs.Count) SelectedTab = Tabs[n - 1];
     }
 
+    /// <summary>The settings folder; Debug builds can show a generic one (TEXTPEACH_DEMO_DATAFOLDER) for screenshots.</summary>
+    private string ShownDataFolder =>
+#if DEBUG
+        Environment.GetEnvironmentVariable("TEXTPEACH_DEMO_DATAFOLDER") ??
+#endif
+        Store.DataFolder;
+
     [RelayCommand]
-    private Task ShowAbout() => Dialogs.About(Shortcuts.AboutText, Store.DataFolder, Shortcuts.Groups);
+    private Task ShowAbout() => Dialogs.About(Shortcuts.AboutText, ShownDataFolder, Shortcuts.Groups, () =>
+    {
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(Store.DataFolder) { UseShellExecute = true }); } catch { }
+    });
 
     /// <summary>Ctrl+P: inside a project, jump to a file; on the home tab, pick a project.</summary>
     [RelayCommand]

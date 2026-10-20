@@ -17,6 +17,10 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var store = new ProjectStore();
+#if !DEBUG
+            // Debug runs stay anonymous so they never replace the location of the real build.
+            PeachApps.Announce("TextPeach");
+#endif
 
             var vm = new MainWindowViewModel(store);
             if (desktop.Args is { Length: > 0 } args) vm.OpenFromArgs(args);

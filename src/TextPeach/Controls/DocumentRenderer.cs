@@ -217,14 +217,18 @@ public static class DocumentRenderer
             }
             case HtmlBlock html:
             {
-                // Raw HTML is shown as-is (dim), never executed.
-                var tb = new SelectableTextBlock
+                // HTML is never executed. The simple tags READMEs use (centered logo, title, text) are drawn;
+                // anything else is shown as dim source text.
+                var raw = html.Lines.ToString().TrimEnd();
+                var c = RenderSimpleHtml(raw, ctx) ?? new SelectableTextBlock
                 {
-                    Text = html.Lines.ToString().TrimEnd(), FontFamily = Mono, FontSize = CodeSize,
-                    Foreground = Palette.Dim, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12),
+                    Text = raw, FontFamily = Mono, FontSize = CodeSize,
+                    Foreground = Palette.Dim, TextWrapping = TextWrapping.Wrap,
                 };
-                target.Add(tb);
-                Track(tb, html, ctx);
+                if (c is Panel { Children.Count: 0 }) break; // only comments
+                c.Margin = new Thickness(0, 0, 0, 12);
+                target.Add(c);
+                Track(c, html, ctx);
                 break;
             }
             case LinkReferenceDefinitionGroup:
@@ -241,6 +245,68 @@ public static class DocumentRenderer
                 break;
             }
         }
+    }
+
+    private static readonly System.Text.RegularExpressions.Regex HtmlComment = new(@"<!--.*?-->", System.Text.RegularExpressions.RegexOptions.Singleline);
+    private static readonly System.Text.RegularExpressions.Regex HtmlPiece = new(
+        @"<img\b(?<img>[^>]*)/?>|<h(?<lvl>[1-6])\b[^>]*>(?<h>.*?)</h\k<lvl>\s*>",
+        System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    private static readonly System.Text.RegularExpressions.Regex HtmlAttr = new(
+        @"\b(?<name>src|width|alt|align)\s*=\s*[""'](?<value>[^""']*)[""']", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    private static readonly System.Text.RegularExpressions.Regex HtmlTag = new(@"<[^>]+>");
+    private static readonly System.Text.RegularExpressions.Regex HtmlBreak = new(@"<br\s*/?>", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    private static readonly System.Text.RegularExpressions.Regex AllowedTags = new(
+        @"^</?(p|div|img|h[1-6]|b|strong|i|em|br|span|a|sub|sup|picture|source)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    /// <summary>Images, headings and plain text from simple HTML (as used in README headers). Null if it uses other tags.</summary>
+    private static Control? RenderSimpleHtml(string html, Ctx ctx)
+    {
+        html = HtmlComment.Replace(html, "");
+        foreach (System.Text.RegularExpressions.Match t in HtmlTag.Matches(html))
+            if (!AllowedTags.IsMatch(t.Value)) return null;
+        bool center = HtmlAttr.Matches(html).Any(m => m.Groups["name"].Value.Equals("align", StringComparison.OrdinalIgnoreCase)
+                                                    && m.Groups["value"].Value.Equals("center", StringComparison.OrdinalIgnoreCase));
+        var panel = new StackPanel { Spacing = 6, HorizontalAlignment = center ? HorizontalAlignment.Center : HorizontalAlignment.Left };
+
+        void AddText(string fragment, double size, FontWeight weight)
+        {
+            var text = System.Net.WebUtility.HtmlDecode(HtmlTag.Replace(HtmlBreak.Replace(fragment, "\n"), ""));
+            text = string.Join("\n", text.Split('\n').Select(l => System.Text.RegularExpressions.Regex.Replace(l.Trim(), @"\s+", " ")).Where(l => l.Length > 0));
+            if (text.Length == 0) return;
+            var tb = Paragraph(ctx);
+            tb.Text = text;
+            tb.FontSize = size;
+            tb.LineHeight = size * 1.5;
+            tb.FontWeight = weight;
+            tb.TextAlignment = center ? TextAlignment.Center : TextAlignment.Left;
+            panel.Children.Add(tb);
+        }
+
+        int pos = 0;
+        foreach (System.Text.RegularExpressions.Match m in HtmlPiece.Matches(html))
+        {
+            AddText(html[pos..m.Index], BodySize, FontWeight.Normal);
+            pos = m.Index + m.Length;
+            if (m.Groups["img"].Success)
+            {
+                var attrs = HtmlAttr.Matches(m.Groups["img"].Value)
+                    .ToDictionary(a => a.Groups["name"].Value.ToLowerInvariant(), a => a.Groups["value"].Value);
+                if (attrs.TryGetValue("src", out var src) && LoadImage(src, ctx) is { } img)
+                {
+                    if (attrs.TryGetValue("width", out var w) && double.TryParse(w, out var width)) img.Width = width;
+                    img.HorizontalAlignment = center ? HorizontalAlignment.Center : HorizontalAlignment.Left;
+                    panel.Children.Add(img);
+                }
+                else if (attrs.TryGetValue("alt", out var alt)) AddText($"[{alt}]", BodySize, FontWeight.Normal);
+            }
+            else
+            {
+                int level = int.Parse(m.Groups["lvl"].Value);
+                AddText(m.Groups["h"].Value, level switch { 1 => 26, 2 => 21, 3 => 17, _ => 15 }, FontWeight.SemiBold);
+            }
+        }
+        AddText(html[pos..], BodySize, FontWeight.Normal);
+        return panel;
     }
 
     private static Control CodeBox(string code, string? lang)

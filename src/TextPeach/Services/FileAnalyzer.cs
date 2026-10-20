@@ -179,6 +179,9 @@ public static partial class FileAnalyzer
     [GeneratedRegex(@"\b(TODO|FIXME|HACK|XXX|BUG|NOTE|OPTIMIZE|REVIEW)\b\s*(?:\([^)]*\))?\s*[:\-]?\s*(.*)$")]
     private static partial Regex MarkerRegex();
 
+    /// <summary>Markers of a whole text with the same rules as <see cref="Analyze"/> (used by the project summary).</summary>
+    public static List<MarkerItem> FindMarkers(string text, LanguageInfo lang) => Markers(SplitLines(text, out _, out _), lang.IsProse);
+
     private static List<MarkerItem> Markers(List<string> lines, bool prose)
     {
         var list = new List<MarkerItem>();

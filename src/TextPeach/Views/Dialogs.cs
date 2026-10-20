@@ -121,7 +121,7 @@ public static class Dialogs
     }
 
     /// <summary>F1 / "?": app identity first, then the keyboard shortcuts as a plain two-column table.</summary>
-    public static async Task About(string description, string dataPath, IEnumerable<(string Title, (string Gesture, string Description)[] Items)> shortcutGroups)
+    public static async Task About(string description, string dataPath, IEnumerable<(string Title, (string Gesture, string Description)[] Items)> shortcutGroups, Action openDataFolder)
     {
         var owner = Owner;
         if (owner is null) return;
@@ -129,6 +129,8 @@ public static class Dialogs
         var version = typeof(Dialogs).Assembly.GetName().Version;
         var close = Btn("Cerrar", true);
         close.Click += (_, _) => w.Close();
+        var openData = Btn("Abrir carpeta de configuración");
+        openData.Click += (_, _) => openDataFolder();
 
         var header = new DockPanel { Margin = new Thickness(0, 0, 0, 4) };
         var logo = new Image
@@ -183,8 +185,8 @@ public static class Dialogs
                     Content = shortcuts,
                 },
                 new Border { Height = 1, Background = Palette.Border },
-                new TextBlock { Text = "Datos guardados en: " + dataPath, Foreground = Palette.Dim, FontSize = 11, TextWrapping = TextWrapping.Wrap },
-                new StackPanel { HorizontalAlignment = HorizontalAlignment.Right, Children = { close } },
+                new TextBlock { Text = "Configuración guardada en: " + dataPath, Foreground = Palette.Dim, FontSize = 11, TextWrapping = TextWrapping.Wrap },
+                new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right, Children = { openData, close } },
             },
         };
         w.KeyDown += (_, e) => { if (e.Key is Key.Escape or Key.Enter) w.Close(); };

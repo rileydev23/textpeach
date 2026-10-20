@@ -297,7 +297,7 @@ llaves no entiende todos los literales de cadena de todos los lenguajes; solo se
 ## Compilar desde el código
 
 ```bat
-git clone <url-del-repositorio> TextPeach
+git clone https://github.com/rileydev23/textpeach.git TextPeach
 cd TextPeach
 
 dev.cmd                       :: compila en Debug y ejecuta

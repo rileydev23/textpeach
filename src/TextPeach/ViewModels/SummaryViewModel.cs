@@ -62,15 +62,11 @@ public sealed partial class SummaryViewModel : TabViewModel
                     }
                     var (lines, blank) = FileAnalyzer.CountLines(text);
                     var markers = new List<MarkerRowVM>();
-                    if (!lang.IsProse || lang.Name == "Markdown")
+                    // Cheap pre-check, then the same rules as the per-file analysis (prose, inline code…).
+                    if (MarkerRegex.IsMatch(text))
                     {
-                        foreach (Match m in MarkerRegex.Matches(text))
-                        {
-                            int line = 1;
-                            for (int i = 0; i < m.Index; i++) if (text[i] == '\n') line++;
-                            markers.Add(new MarkerRowVM { Tag = m.Groups[1].Value, Text = m.Groups[2].Value.Trim().TrimEnd('*', '/', '-', '>', ' '), Line = line, RelPath = rel });
-                            if (markers.Count > 50) break;
-                        }
+                        foreach (var m in FileAnalyzer.FindMarkers(text, lang).Where(m => m.Tag is "TODO" or "FIXME" or "HACK" or "XXX" or "BUG").Take(50))
+                            markers.Add(new MarkerRowVM { Tag = m.Tag, Text = m.Text, Line = m.Line, RelPath = rel });
                     }
                     bag.Add(new FileStat(rel, lang.Name, lines, blank, size, markers));
                 });
