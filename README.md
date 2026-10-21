@@ -5,7 +5,7 @@
 <h1 align="center">TextPeach</h1>
 
 <p align="center">
-  Visor y analizador de código para Windows, <b>de solo lectura</b> por diseño.<br/>
+  Visor y analizador de código para Windows y Linux, <b>de solo lectura</b> por diseño.<br/>
   Abre carpetas de proyecto, recórrelas, lee el código con colores, mira su estructura, sus métricas y su estado de git, y busca en todo el proyecto, sin miedo a cambiar nada por accidente.
 </p>
 
@@ -112,15 +112,17 @@ Es un único `.exe` portable, sin instalador, sin cuentas y sin conexión a inte
 
 ## Requisitos
 
-- **Para usarlo:** Windows 10 u 11 de 64 bits. No necesita .NET instalado (el ejecutable es autocontenido).
+- **Para usarlo:** Windows 10 u 11 de 64 bits, o Linux x64 con escritorio (X11 o XWayland). No necesita .NET
+  instalado (el ejecutable es autocontenido).
 - **Para ver el estado de git:** [Git para Windows](https://git-scm.com/download/win) en el `PATH` (o en su
-  carpeta de instalación habitual). Sin git, TextPeach funciona igual, solo que sin esa información.
+  carpeta de instalación habitual); en Linux, el `git` de tu distribución. Sin git, TextPeach funciona igual, solo que sin esa información.
 - **Para compilarlo:** [SDK de .NET 10](https://dotnet.microsoft.com/download).
 
 ## Instalación
 
-1. Descarga `TextPeach.exe` desde la sección *Releases* del repositorio (o compílalo, ver
-   [Compilar desde el código](#compilar-desde-el-código)).
+1. Descarga `TextPeach.exe` (Windows) o `TextPeach-linux-x64.tar.gz` (Linux) desde la sección *Releases* del
+   repositorio (o compílalo, ver [Compilar desde el código](#compilar-desde-el-código)). En Linux,
+   descomprímelo con `tar -xzf TextPeach-linux-x64.tar.gz`.
 2. Ponlo en la carpeta que quieras y ejecútalo. No hay instalador.
 3. *(Opcional)* **Modo portable:** crea un archivo vacío `portable.txt` junto al `.exe` y los datos se
    guardarán en `.\data\` en lugar de en tu perfil.
@@ -375,8 +377,8 @@ comentarios) y, si quieres estructura, `FileAnalyzer.cs`.
 
 Otros: la estructura y las métricas son heurísticas (regex), no un análisis semántico; el plegado de
 llaves no entiende todos los literales de cadena de todos los lenguajes; los archivos eliminados no aparecen
-en el árbol (no existen en el disco); el cambio de idioma requiere reiniciar; solo se publica para Windows x64
-(Avalonia es multiplataforma, así que portarlo es posible).
+en el árbol (no existen en el disco); el cambio de idioma requiere reiniciar; solo se publica para Windows x64 y
+Linux x64 (en Linux se usa la barra de título del sistema).
 
 ## Compilar desde el código
 
@@ -388,6 +390,9 @@ dev.cmd                       :: compila en Debug y ejecuta
 dotnet test TextPeach.sln     :: ejecuta los tests
 build.cmd                     :: genera dist\TextPeach.exe (single-file, autocontenido, win-x64)
 ```
+
+En Linux, `./build.sh` genera `dist/TextPeach` (linux-x64). Los dos aceptan una versión opcional
+(`build.cmd 0.4.0`) que queda grabada en el ejecutable.
 
 `build.cmd` publica con ReadyToRun y compresión, sin *trimming* (las gramáticas TextMate se cargan por
 reflexión). La primera compilación descarga los paquetes NuGet.
@@ -449,7 +454,7 @@ una sola rama principal, `main`, sin ramas intermedias (`develop`, `release/…`
 
 ```
 feature/algo ──PR──┐
-fix/otro ─────PR───┼──▶ main ──(cuando el mantenedor decide)──▶ release v0.4.0 + TextPeach.exe
+fix/otro ─────PR───┼──▶ main ──(cuando el mantenedor decide)──▶ release v0.4.0 (Windows + Linux)
 docs/tal ─────PR───┘
 ```
 
@@ -459,8 +464,9 @@ docs/tal ─────PR───┘
    calcula sola a partir de las ramas: si entró algún `feature/` sube la menor (0.3.2 → 0.4.0); si no, el
    parche (0.3.2 → 0.3.3).
 3. **Un merge no es un release.** Se pueden juntar varios *pull requests* en el borrador y publicarlo cuando
-   haya algo que valga la pena entregar. Publicarlo crea el tag `vX.Y.Z` y un workflow compila
-   `TextPeach.exe` con esa versión y lo adjunta al release.
+   haya algo que valga la pena entregar. Publicarlo crea el tag `vX.Y.Z` y un workflow
+   automáticamente corre los tests, compila `TextPeach.exe` y `TextPeach-linux-x64.tar.gz` con esa versión, comprueba que
+   los dos arrancan y los adjunta al release.
 4. Mientras sea 0.x, los cambios incompatibles también suben solo la versión menor. Para sacar la **1.0.0**,
    el mantenedor cambia la versión del borrador a mano justo antes de publicarlo.
 

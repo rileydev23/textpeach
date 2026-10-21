@@ -1,4 +1,4 @@
-# Every pull request and every push to main must build and pass the tests.
+# Every pull request and every push to main must build and pass the tests, on Windows and on Linux.
 name: CI
 
 on:
@@ -11,7 +11,11 @@ permissions:
 
 jobs:
   build:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4

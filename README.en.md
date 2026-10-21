@@ -5,7 +5,7 @@
 <h1 align="center">TextPeach</h1>
 
 <p align="center">
-  A code viewer and analyzer for Windows, <b>read-only</b> by design.<br/>
+  A code viewer and analyzer for Windows and Linux, <b>read-only</b> by design.<br/>
   Open project folders, browse them, read the code with syntax colors, see its structure, metrics and git state, and search the whole project, with no fear of changing anything by accident.
 </p>
 
@@ -112,15 +112,17 @@ It is a single portable `.exe`: no installer, no accounts, no internet connectio
 
 ## Requirements
 
-- **To use it:** 64-bit Windows 10 or 11. No .NET installation needed (the executable is self-contained).
+- **To use it:** 64-bit Windows 10 or 11, or Linux x64 with a desktop (X11 or XWayland). No .NET installation
+  needed (the executable is self-contained).
 - **To see the git state:** [Git for Windows](https://git-scm.com/download/win) on the `PATH` (or in its
-  usual install folder). Without git, TextPeach works the same, just without that information.
+  usual install folder); on Linux, your distribution's `git`. Without git, TextPeach works the same, just without that information.
 - **To build it:** the [.NET 10 SDK](https://dotnet.microsoft.com/download).
 
 ## Installation
 
-1. Download `TextPeach.exe` from the repository's *Releases* (or build it, see
-   [Building from source](#building-from-source)).
+1. Download `TextPeach.exe` (Windows) or `TextPeach-linux-x64.tar.gz` (Linux) from the repository's
+   *Releases* (or build it, see [Building from source](#building-from-source)). On Linux, unpack it with
+   `tar -xzf TextPeach-linux-x64.tar.gz`.
 2. Put it in any folder and run it. There is no installer.
 3. *(Optional)* **Portable mode:** create an empty `portable.txt` file next to the `.exe` and the data will
    be stored in `.\data\` instead of your profile.
@@ -368,8 +370,8 @@ structure, `FileAnalyzer.cs`.
 
 Others: structure and metrics are heuristics (regex), not semantic analysis; brace folding does not
 understand every string literal of every language; deleted files don't show up in the tree (they are not on
-disk); changing the language needs a restart; only Windows x64 builds are published (Avalonia is
-cross-platform, so porting it is possible).
+disk); changing the language needs a restart; only Windows x64 and Linux x64 builds are published (on
+Linux the system title bar is used).
 
 ## Building from source
 
@@ -381,6 +383,9 @@ dev.cmd                       :: build in Debug and run
 dotnet test TextPeach.sln     :: run the tests
 build.cmd                     :: produce dist\TextPeach.exe (single-file, self-contained, win-x64)
 ```
+
+On Linux, `./build.sh` produces `dist/TextPeach` (linux-x64). Both take an optional version
+(`build.cmd 0.4.0`) that is stamped into the executable.
 
 `build.cmd` publishes with ReadyToRun and compression, without *trimming* (TextMate grammars are loaded
 through reflection). The first build downloads the NuGet packages.
@@ -442,7 +447,7 @@ single main branch, `main`, with no intermediate branches (`develop`, `release/�
 
 ```
 feature/thing ──PR──┐
-fix/other ─────PR───┼──▶ main ──(when the maintainer decides)──▶ release v0.4.0 + TextPeach.exe
+fix/other ─────PR───┼──▶ main ──(when the maintainer decides)──▶ release v0.4.0 (Windows + Linux)
 docs/stuff ────PR───┘
 ```
 
@@ -452,8 +457,9 @@ docs/stuff ────PR───┘
    out from the branches: any `feature/` raises the minor version (0.3.2 → 0.4.0), otherwise the patch
    (0.3.2 → 0.3.3).
 3. **A merge is not a release.** Several pull requests can pile up in the draft, and it is published when
-   there is something worth shipping. Publishing it creates the `vX.Y.Z` tag, and a workflow builds
-   `TextPeach.exe` with that version and attaches it to the release.
+   there is something worth shipping. Publishing it creates the `vX.Y.Z` tag, and a workflow
+   runs the tests, builds `TextPeach.exe` and `TextPeach-linux-x64.tar.gz` with that version, checks that both
+   start, and attaches them to the release.
 4. While on 0.x, breaking changes also raise only the minor version. For **1.0.0**, the maintainer changes the
    draft's version by hand right before publishing it.
 

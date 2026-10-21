@@ -75,8 +75,8 @@ Versions follow [SemVer](https://semver.org) and nobody edits a version number b
 - TextPeach is still at **0.x**, so breaking changes raise the minor version too. The maintainer sets
   **1.0.0** by hand on the draft when the time comes; after that, the `breaking` label raises the major one.
 - A merge is not a release: the draft collects several pull requests and is published when it is worth it.
-- When the maintainer publishes the draft, the tag `vX.Y.Z` is created and a workflow builds `TextPeach.exe`
-  with that version and attaches it to the release.
+- When the maintainer publishes the draft, the tag `vX.Y.Z` is created and a workflow builds `TextPeach.exe` and
+  `TextPeach-linux-x64.tar.gz` with that version and attaches them to the release.
 
 ### License of contributions
 
@@ -166,8 +166,8 @@ Las versiones siguen [SemVer](https://semver.org) y nadie cambia el número de v
   mantenedor pone la **1.0.0** a mano en el borrador cuando llegue el momento; desde ahí, la etiqueta
   `breaking` sube la versión mayor.
 - Un merge no es un release: el borrador junta varios *pull requests* y se publica cuando vale la pena.
-- Cuando el mantenedor publica el borrador, se crea el tag `vX.Y.Z` y un workflow compila `TextPeach.exe` con
-  esa versión y lo adjunta al release.
+- Cuando el mantenedor publica el borrador, se crea el tag `vX.Y.Z` y un workflow compila `TextPeach.exe` y
+  `TextPeach-linux-x64.tar.gz` con esa versión y los adjunta al release.
 
 ### Licencia de las contribuciones
 

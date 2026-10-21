@@ -163,7 +163,7 @@ public static class Dialogs
             foreach (var (gesture, desc) in items)
             {
                 var row = new Grid { ColumnDefinitions = new ColumnDefinitions("215,*") };
-                row.Children.Add(new TextBlock { Text = gesture, Foreground = Palette.Dim, FontSize = 12, FontFamily = new FontFamily("Cascadia Mono, Consolas") });
+                row.Children.Add(new TextBlock { Text = gesture, Foreground = Palette.Dim, FontSize = 12, FontFamily = new FontFamily("Cascadia Mono, Consolas, DejaVu Sans Mono") });
                 var d = new TextBlock { Text = desc, Foreground = Palette.Text, FontSize = 12, TextWrapping = TextWrapping.Wrap };
                 Grid.SetColumn(d, 1);
                 row.Children.Add(d);
@@ -282,7 +282,7 @@ public static class Dialogs
             AcceptsReturn = true,
             TextWrapping = TextWrapping.NoWrap,
             Height = 180,
-            FontFamily = new FontFamily("Cascadia Mono, Consolas"),
+            FontFamily = new FontFamily("Cascadia Mono, Consolas, DejaVu Sans Mono"),
             FontSize = 12,
         };
         var okBtn = Btn(Loc.T("common.save"), true);

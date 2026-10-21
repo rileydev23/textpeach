@@ -328,7 +328,7 @@
     <Setter Property="FontSize" Value="12" />
   </Style>
   <Style Selector="TextBlock.mono">
-    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, Courier New" />
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, Courier New, DejaVu Sans Mono, Liberation Mono" />
   </Style>
   <Style Selector="TextBlock.section">
     <Setter Property="FontWeight" Value="SemiBold" />
@@ -340,6 +340,6 @@
     <Setter Property="Background" Value="#1b1c1f" />
     <Setter Property="Foreground" Value="#d4d4d4" />
     <Setter Property="LineNumbersForeground" Value="#5d6066" />
-    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, Courier New" />
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, Courier New, DejaVu Sans Mono, Liberation Mono" />
   </Style>
 </Styles>

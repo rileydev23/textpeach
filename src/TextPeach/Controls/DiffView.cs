@@ -39,7 +39,7 @@ public sealed class DiffView : DockPanel
     public event Action<bool>? LayoutChanged;
 
     public double EditorFontSize { get; set; } = 13;
-    public FontFamily EditorFont { get; set; } = new("Cascadia Mono, Consolas, Courier New");
+    public FontFamily EditorFont { get; set; } = new("Cascadia Mono, Consolas, Courier New, DejaVu Sans Mono, Liberation Mono");
 
     public DiffView()
     {
@@ -328,7 +328,7 @@ public sealed class DiffView : DockPanel
     /// <summary>Old and/or new line numbers plus the +/− sign; blank where a side has no line.</summary>
     private sealed class NumberMargin(int[]? oldNos, int[]? newNos, Paint[] paint) : AbstractMargin
     {
-        private static readonly Typeface Face = new("Cascadia Mono, Consolas, Courier New");
+        private static readonly Typeface Face = new("Cascadia Mono, Consolas, Courier New, DejaVu Sans Mono, Liberation Mono");
         private readonly int _digits = Math.Max(3, Math.Max(oldNos?.DefaultIfEmpty().Max() ?? 0, newNos?.DefaultIfEmpty().Max() ?? 0).ToString(CultureInfo.InvariantCulture).Length);
         private int Digits => _digits;
         private double TextSize => TextArea?.FontSize ?? 13;
