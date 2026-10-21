@@ -21,6 +21,8 @@ public sealed class GitSnapshot
     public List<(string Prefix, GitChange Change)> Folders { get; } = new();
     /// <summary>Strongest change below each folder, so collapsed folders still show there is something inside.</summary>
     public Dictionary<string, GitChange> Inside { get; } = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>Repository path a renamed or copied file had in HEAD, keyed by its project-relative path.</summary>
+    public Dictionary<string, string> RenamedFrom { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     public int ChangedCount => Files.Values.Count(c => c is not (GitChange.None or GitChange.Ignored))
                                + Folders.Count(f => f.Change == GitChange.Untracked);
@@ -109,7 +111,7 @@ public static class GitStatus
         var prefix = Path.GetRelativePath(repoRoot, projectRoot).Replace('\\', '/');
         prefix = prefix == "." ? "" : prefix.TrimEnd('/') + "/";
 
-        var files = new List<(string Path, GitChange Change)>();
+        var files = new List<(string Path, GitChange Change, string? From)>();
         for (int i = 0; i < entries.Length; i++)
         {
             var e = entries[i];
@@ -121,19 +123,21 @@ public static class GitStatus
             if (e.Length < 4) continue;
             char x = e[0], y = e[1];
             var path = e[3..];
-            // Renames and copies are followed by the original path, which no longer matters here.
-            if (x is 'R' or 'C') i++;
-            files.Add((path, Classify(x, y)));
+            // Renames and copies are followed by the original path: where to find the committed text.
+            string? from = null;
+            if (x is 'R' or 'C' && i + 1 < entries.Length) from = entries[++i];
+            files.Add((path, Classify(x, y), from));
         }
 
         var snap = new GitSnapshot { Branch = branch, Detached = detached, Ahead = ahead, Behind = behind, RepoRoot = repoRoot };
-        foreach (var (repoPath, change) in files)
+        foreach (var (repoPath, change, from) in files)
         {
             if (!repoPath.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) continue;
             var rel = repoPath[prefix.Length..];
             if (rel.Length == 0) continue;
             if (rel.EndsWith('/')) snap.Folders.Add((rel, change));
             else snap.Files[rel] = change;
+            if (from is not null) snap.RenamedFrom[rel] = from;
             if (change == GitChange.Ignored) continue;
             // Every folder above the entry learns the strongest change it contains.
             var parts = rel.TrimEnd('/').Split('/');
@@ -188,15 +192,97 @@ public static class GitStatus
     {
         try
         {
-            var git = Path.Combine(repoRoot, ".git");
-            if (File.Exists(git))
-            {
-                var line = File.ReadAllText(git).Trim();
-                if (!line.StartsWith("gitdir:")) return null;
-                git = Path.GetFullPath(Path.Combine(repoRoot, line[7..].Trim()));
-            }
+            if (GitDir(repoRoot) is not { } git) return null;
             var head = File.ReadAllText(Path.Combine(git, "HEAD")).Trim();
             return head.Length >= 7 && !head.StartsWith("ref:") ? head[..7] : null;
+        }
+        catch { return null; }
+    }
+
+    /// <summary>The real git directory: <c>.git</c>, or where the <c>gitdir:</c> line of a worktree/submodule points.</summary>
+    private static string? GitDir(string repoRoot)
+    {
+        var git = Path.Combine(repoRoot, ".git");
+        if (!File.Exists(git)) return Directory.Exists(git) ? git : null;
+        var line = File.ReadAllText(git).Trim();
+        return line.StartsWith("gitdir:") ? Path.GetFullPath(Path.Combine(repoRoot, line[7..].Trim())) : null;
+    }
+
+    /// <summary>
+    /// Identifies the commit HEAD points to, read from files (HEAD, the loose ref or packed-refs) so it can be checked
+    /// on every refresh: the committed text of open files is read again only when this changes.
+    /// </summary>
+    public static string? ReadHeadId(string repoRoot)
+    {
+        try
+        {
+            if (GitDir(repoRoot) is not { } git) return null;
+            var head = File.ReadAllText(Path.Combine(git, "HEAD")).Trim();
+            if (!head.StartsWith("ref:")) return head;
+            var name = head[4..].Trim();
+            // Worktrees keep HEAD apart but share refs with the main repository.
+            var common = File.Exists(Path.Combine(git, "commondir"))
+                ? Path.GetFullPath(Path.Combine(git, File.ReadAllText(Path.Combine(git, "commondir")).Trim()))
+                : git;
+            foreach (var dir in new[] { git, common })
+            {
+                var loose = Path.Combine(dir, name.Replace('/', Path.DirectorySeparatorChar));
+                if (File.Exists(loose)) return File.ReadAllText(loose).Trim();
+            }
+            var packed = Path.Combine(common, "packed-refs");
+            if (File.Exists(packed))
+                foreach (var l in File.ReadLines(packed))
+                    if (l.EndsWith(" " + name, StringComparison.Ordinal)) return l[..l.IndexOf(' ')];
+            return "unborn:" + name;
+        }
+        catch { return null; }
+    }
+
+    /// <summary>The repository-relative path of a project file, as git names it.</summary>
+    public static string RepoPath(string repoRoot, string projectRoot, string relPath)
+    {
+        var prefix = Path.GetRelativePath(repoRoot, projectRoot).Replace('\\', '/');
+        return prefix == "." ? relPath : prefix.TrimEnd('/') + "/" + relPath;
+    }
+
+    /// <summary>
+    /// The file as of the last commit (<c>git show HEAD:path</c>), decoded like files on disk. Null when it is not in
+    /// HEAD (new file, no commits yet), is binary, or git fails. Read-only, like everything here.
+    /// </summary>
+    public static async Task<string?> ReadHeadTextAsync(string repoRoot, string repoPath, CancellationToken ct)
+    {
+        var exe = GitExe.Value;
+        if (exe is null) return null;
+        var psi = new ProcessStartInfo(exe)
+        {
+            WorkingDirectory = repoRoot,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+        foreach (var a in new[] { "--no-optional-locks", "show", "HEAD:" + repoPath }) psi.ArgumentList.Add(a);
+        psi.Environment["GIT_OPTIONAL_LOCKS"] = "0";
+        try
+        {
+            using var p = Process.Start(psi);
+            if (p is null) return null;
+            _ = p.StandardError.ReadToEndAsync(ct);
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(TimeSpan.FromSeconds(10));
+            using var ms = new MemoryStream();
+            try
+            {
+                await p.StandardOutput.BaseStream.CopyToAsync(ms, timeout.Token);
+                await p.WaitForExitAsync(timeout.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                try { p.Kill(); } catch { }
+                return null;
+            }
+            if (p.ExitCode != 0 || ms.Length > FileLoader.MaxTextBytes) return null;
+            return FileLoader.Decode(ms.ToArray()).Text;
         }
         catch { return null; }
     }

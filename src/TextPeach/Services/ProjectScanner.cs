@@ -16,8 +16,9 @@ public static class ProjectScanner
     public static bool IsSkipped(string dirName) => SkipDirs.Contains(dirName);
 
     /// <summary>Relative paths (with '/' separators) of every file worth showing.</summary>
-    public static List<string> ListFiles(string root, CancellationToken ct)
+    public static List<string> ListFiles(string root, CancellationToken ct, IgnoreRules? rules = null)
     {
+        rules ??= IgnoreRules.Default;
         var result = new List<string>();
         var stack = new Stack<string>();
         stack.Push(root);
@@ -35,8 +36,7 @@ public static class ProjectScanner
                 }
                 foreach (var sub in Directory.EnumerateDirectories(dir))
                 {
-                    var name = Path.GetFileName(sub);
-                    if (IsSkipped(name)) continue;
+                    if (rules.IsIgnoredDir(sub[prefix..].Replace('\\', '/'))) continue;
                     if ((File.GetAttributes(sub) & FileAttributes.ReparsePoint) != 0) continue;
                     stack.Push(sub);
                 }

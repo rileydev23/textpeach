@@ -15,6 +15,8 @@ public abstract partial class TabViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(TitleBrush))]
     private GitChange _change;
     public IBrush TitleBrush => GitLook.NameBrush(Change);
+    /// <summary>Opened with a single click: shown in italics and replaced by the next file opened that way.</summary>
+    [ObservableProperty] private bool _isPreview;
     public virtual bool Closable => true;
     public ICommand? CloseCommand { get; set; }
 }

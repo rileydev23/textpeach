@@ -32,6 +32,11 @@ public static class Palette
     public static readonly IBrush MatchBg = B("#5a4318");
     public static readonly IBrush MatchFg = B("#ffd27a");
     public static readonly IBrush FileBg = B("#34363c");
+    public static readonly IBrush AddedBg = B("#1d3a2a"), AddedFg = B("#a6e3b4");
+    public static readonly IBrush RemovedBg = B("#431f22"), RemovedFg = B("#f4a6a6");
+    public static readonly IBrush HunkBg = B("#25364d");
+    public static readonly IBrush ContextFg = B("#c8c8c8");
+    public static readonly IBrush Gutter = B("#5d6066");
 
     public static readonly Color[] Series =
     {

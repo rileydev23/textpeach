@@ -269,6 +269,48 @@ public static class Dialogs
         return result;
     }
 
+    /// <summary>A list edited as text, one item per line (the project's ignored folders). Null when cancelled.</summary>
+    public static async Task<List<string>?> EditLines(string title, string explanation, string note, IEnumerable<string> lines)
+    {
+        var owner = Owner;
+        if (owner is null) return null;
+        var w = Make(title, 520);
+        List<string>? result = null;
+        var box = new TextBox
+        {
+            Text = string.Join(Environment.NewLine, lines),
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.NoWrap,
+            Height = 180,
+            FontFamily = new FontFamily("Cascadia Mono, Consolas"),
+            FontSize = 12,
+        };
+        var okBtn = Btn(Loc.T("common.save"), true);
+        var cancel = Btn(Loc.T("common.cancel"));
+        okBtn.Click += (_, _) =>
+        {
+            result = (box.Text ?? "").Split('\n').Select(l => l.TrimEnd('\r')).ToList();
+            w.Close();
+        };
+        cancel.Click += (_, _) => w.Close();
+        w.Content = new StackPanel
+        {
+            Margin = new Thickness(18), Spacing = 10,
+            Children =
+            {
+                new TextBlock { Text = explanation, TextWrapping = TextWrapping.Wrap, Foreground = Palette.Text },
+                box,
+                new TextBlock { Text = note, TextWrapping = TextWrapping.Wrap, Foreground = Palette.Dim, FontSize = 11 },
+                new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 6, 0, 0),
+                    HorizontalAlignment = HorizontalAlignment.Right, Children = { okBtn, cancel } },
+            },
+        };
+        w.KeyDown += (_, e) => { if (e.Key == Key.Escape) w.Close(); };
+        w.Opened += (_, _) => box.Focus();
+        await w.ShowDialog(owner);
+        return result;
+    }
+
     public static async Task<string?> PickFolder(string title)
     {
         var owner = Owner;

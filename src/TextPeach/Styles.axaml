@@ -302,6 +302,31 @@
   <Style Selector="TextBlock.dim">
     <Setter Property="Foreground" Value="#8a8d93" />
   </Style>
+  <!-- Preview tab (one click, replaced by the next one): italic until it is kept. -->
+  <Style Selector="TextBlock.preview">
+    <Setter Property="FontStyle" Value="Italic" />
+  </Style>
+  <Style Selector="TextBlock.gone">
+    <Setter Property="TextDecorations" Value="Strikethrough" />
+    <Setter Property="Foreground" Value="#8a8d93" />
+  </Style>
+  <!-- "Follow" toggle: the dot lights up green while it is on. -->
+  <Style Selector="ToggleButton.follow Ellipse.live">
+    <Setter Property="Fill" Value="#5d6066" />
+  </Style>
+  <Style Selector="ToggleButton.follow:checked Ellipse.live">
+    <Setter Property="Fill" Value="#6cc070" />
+  </Style>
+  <Style Selector="ToggleButton.follow:checked /template/ ContentPresenter#PART_ContentPresenter,
+                   ToggleButton.diff:checked /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#33507a" />
+    <Setter Property="BorderBrush" Value="#4a90d9" />
+    <Setter Property="Foreground" Value="#ffffff" />
+  </Style>
+  <Style Selector="ToggleButton.diff">
+    <Setter Property="Padding" Value="8,2" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
   <Style Selector="TextBlock.mono">
     <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, Courier New" />
   </Style>

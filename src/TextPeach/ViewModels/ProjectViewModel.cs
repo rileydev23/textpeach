@@ -47,13 +47,28 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
     /// <summary>Shown instead of the branch when there is no git information, with the reason as tooltip.</summary>
     [ObservableProperty] private string _noGitTip = "";
     [ObservableProperty] private bool _showNoGit;
+    /// <summary>Sidebar shows the files that changed on disk ("Recent") instead of the tree or the search.</summary>
+    [ObservableProperty] private bool _isRecentMode;
+    /// <summary>Opens each file as soon as it changes on disk, at the changed line: watching an agent work.</summary>
+    [ObservableProperty] private bool _followChanges;
+    [ObservableProperty] private bool _canGoBack;
+    [ObservableProperty] private bool _canGoForward;
 
     /// <summary>Latest git state of the project (read-only: TextPeach shows it, GitPeach acts on it).</summary>
     public GitDecorations Git { get; } = new();
+    /// <summary>Folders left out of the tree, the file list, the search and "Recent" (defaults + this project's lines).</summary>
+    public IgnoreRules Rules { get; private set; }
+    public ObservableCollection<RecentChangeVM> Recent { get; } = new();
 
     public OpenFileViewModel? SelectedFile => SelectedDoc as OpenFileViewModel;
     public bool HasFile => SelectedFile is not null;
     public bool IsSummary => SelectedDoc is SummaryViewModel;
+    public bool IsFilesMode => !IsSearchMode && !IsRecentMode;
+    public bool HasRecent => Recent.Count > 0;
+    private readonly ProjectPrefs _prefs;
+    private HashSet<string> _knownFiles = new(StringComparer.OrdinalIgnoreCase);
+    private string? _headId;
+    private DispatcherTimer? _agoTimer;
 
     public event Action? SearchFocusRequested;
     public event Action? FilterFocusRequested;
@@ -61,9 +76,9 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
 
     private List<string> _allFiles = new();
     private FileSystemWatcher? _watcher;
-    private CancellationTokenSource? _treeDebounce, _searchCts, _searchDebounce, _scanCts, _gitDebounce;
+    private CancellationTokenSource? _treeDebounce, _searchCts, _searchDebounce, _scanCts, _gitDebounce, _followDebounce;
     private readonly Dictionary<string, CancellationTokenSource> _fileDebounce = new(StringComparer.OrdinalIgnoreCase);
-    private bool _disposed;
+    private bool _disposed, _gitRead;
     private bool _restoring = true; // until the saved session has been reopened
 
     public ProjectViewModel(string path, ProjectStore store, ViewerSettings settings)
@@ -71,13 +86,16 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         RootPath = path;
         _store = store;
         Settings = settings;
+        _prefs = store.PrefsFor(path);
+        Rules = new IgnoreRules(_prefs.Ignore);
         Title = Path.GetFileName(path.TrimEnd('\\', '/'));
         ToolTip = path;
         Summary = new SummaryViewModel(path);
         Docs.Add(Summary);
         SelectedDoc = Summary;
+        Recent.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasRecent));
 
-        foreach (var n in FileNode.ListChildren(path, path, Git)) Tree.Add(n);
+        foreach (var n in FileNode.ListChildren(path, path, Git, Rules)) Tree.Add(n);
         RestoreSession();
         StartWatcher();
         _ = RescanAsync();
@@ -93,6 +111,15 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         SaveSession();
     }
 
+    partial void OnSelectedDocChanged(TabViewModel? oldValue, TabViewModel? newValue)
+    {
+        // Switching files is a jump Alt+← can undo, like in most editors.
+        if (oldValue is not null && newValue is not null) PushBack(LocationOf(oldValue));
+    }
+
+    partial void OnIsSearchModeChanged(bool value) => OnPropertyChanged(nameof(IsFilesMode));
+    partial void OnIsRecentModeChanged(bool value) => OnPropertyChanged(nameof(IsFilesMode));
+
     // ------------------------------------------------------------ file list / tree
 
     private async Task RescanAsync()
@@ -101,9 +128,11 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         var cts = _scanCts = new CancellationTokenSource();
         try
         {
-            var files = await Task.Run(() => ProjectScanner.ListFiles(RootPath, cts.Token), cts.Token);
+            var rules = Rules;
+            var files = await Task.Run(() => ProjectScanner.ListFiles(RootPath, cts.Token, rules), cts.Token);
             if (cts.IsCancellationRequested) return;
             _allFiles = files;
+            _knownFiles = new HashSet<string>(files, StringComparer.OrdinalIgnoreCase);
             FilesText = files.Count >= ProjectScanner.MaxFiles ? Loc.F("pv.filesCountMore", files.Count) : Loc.Plural("common.files", files.Count);
             ApplyFilter();
             await Summary.ComputeAsync(files);
@@ -123,7 +152,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         var selected = SelectedNode?.RelPath;
 
         Tree.Clear();
-        foreach (var n in FileNode.ListChildren(RootPath, RootPath, Git)) Tree.Add(n);
+        foreach (var n in FileNode.ListChildren(RootPath, RootPath, Git, Rules)) Tree.Add(n);
         void Expand(IEnumerable<FileNode> nodes)
         {
             foreach (var n in nodes)
@@ -156,8 +185,23 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
 
     partial void OnSelectedNodeChanged(FileNode? value)
     {
+        // One click (or arrowing through the tree) previews; a double click keeps the tab (PinNode).
         if (_suppressNodeOpen || value is null || value.IsDirectory || value.IsPlaceholder) return;
-        OpenFile(value.RelPath);
+        OpenFile(value.RelPath, preview: true);
+    }
+
+    /// <summary>Double click on a file of the tree: open it in a tab of its own.</summary>
+    public void PinNode(FileNode node)
+    {
+        if (!node.IsDirectory && !node.IsPlaceholder) OpenFile(node.RelPath);
+    }
+
+    /// <summary>Double click on a tab, or any edit: the preview tab becomes a normal one.</summary>
+    public void Pin(TabViewModel tab)
+    {
+        if (!tab.IsPreview) return;
+        tab.IsPreview = false;
+        SaveSession();
     }
 
     partial void OnFileFilterChanged(string value) => ApplyFilter();
@@ -175,12 +219,16 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
 
     public void OpenSelectedHit()
     {
-        if (SelectedHit is { } h) { OpenFile(h.RelPath); EditorFocusRequested?.Invoke(); }
+        if (SelectedHit is { } h) { OpenFile(h.RelPath, preview: true); EditorFocusRequested?.Invoke(); }
     }
 
     // ------------------------------------------------------------ documents
 
-    public OpenFileViewModel? OpenFile(string relPath, int line = 0, int col = 1, int len = 0)
+    /// <summary>
+    /// Opens (or selects) a file. With <paramref name="preview"/> it takes the place of the current preview tab
+    /// instead of adding one, so exploring does not fill the strip; without it the tab stays.
+    /// </summary>
+    public OpenFileViewModel? OpenFile(string relPath, int line = 0, int col = 1, int len = 0, bool preview = false)
     {
         var full = Path.Combine(RootPath, relPath.Replace('/', Path.DirectorySeparatorChar));
         if (!File.Exists(full))
@@ -189,18 +237,39 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
             return null;
         }
         var doc = Docs.OfType<OpenFileViewModel>().FirstOrDefault(d => string.Equals(d.RelPath, relPath, StringComparison.OrdinalIgnoreCase));
+        OpenFileViewModel? replaced = null;
         if (doc is null)
         {
-            doc = new OpenFileViewModel(RootPath, relPath) { Change = Git.For(relPath, false) };
+            bool preferCode = _prefs.CodeView.Contains(relPath, StringComparer.OrdinalIgnoreCase);
+            doc = new OpenFileViewModel(RootPath, relPath, preferCode) { Change = Git.For(relPath, false), IsPreview = preview };
             var captured = doc;
             doc.CloseCommand = new AsyncRelayCommand(() => CloseDocAsync(captured));
-            // Open next to the current tab, like most editors.
-            int at = SelectedDoc is null ? Docs.Count : Docs.IndexOf(SelectedDoc) + 1;
+            doc.ViewModeChosen += rendered => RememberViewMode(captured.RelPath, rendered);
+            SetGitBase(doc);
+            // Open next to the current tab, like most editors; a preview takes the old preview's place.
+            replaced = preview ? Docs.OfType<OpenFileViewModel>().FirstOrDefault(d => d.IsPreview && !d.IsDirty && !d.IsEditing) : null;
+            int at = replaced is not null ? Docs.IndexOf(replaced) : SelectedDoc is null ? Docs.Count : Docs.IndexOf(SelectedDoc) + 1;
             Docs.Insert(Math.Clamp(at, 1, Docs.Count), doc);
         }
+        else if (!preview) doc.IsPreview = false;
+        // A jump inside the file already shown is recorded here; switching files is recorded by the selection.
+        if (line > 0 && SelectedDoc == doc) PushBack(LocationOf(doc));
         SelectedDoc = doc;
+        if (replaced is not null)
+        {
+            Docs.Remove(replaced);
+            replaced.Dispose();
+        }
         if (line > 0) doc.Reveal(line, col, len);
+        SaveSession();
         return doc;
+    }
+
+    private void RememberViewMode(string relPath, bool rendered)
+    {
+        _prefs.CodeView.RemoveAll(p => string.Equals(p, relPath, StringComparison.OrdinalIgnoreCase));
+        if (!rendered) _prefs.CodeView.Add(relPath);
+        _store.Save();
     }
 
     public async Task<bool> CloseDocAsync(TabViewModel tab)
@@ -263,11 +332,16 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         if (!_store.State.Sessions.TryGetValue(RootPath, out var s)) { _restoring = false; return; }
         try
         {
-            foreach (var rel in s.Files) OpenFile(rel);
+            foreach (var rel in s.Files) OpenFile(rel, preview: string.Equals(rel, s.Preview, StringComparison.OrdinalIgnoreCase));
             SelectedDoc = Docs.OfType<OpenFileViewModel>().FirstOrDefault(d => string.Equals(d.RelPath, s.Active, StringComparison.OrdinalIgnoreCase))
                           ?? (TabViewModel)Summary;
         }
-        finally { _restoring = false; }
+        finally
+        {
+            _restoring = false;
+            _back.Clear();
+            UpdateNav();
+        }
     }
 
     private void SaveSession()
@@ -277,8 +351,70 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         {
             Files = Docs.OfType<OpenFileViewModel>().Select(d => d.RelPath).ToList(),
             Active = SelectedFile?.RelPath,
+            Preview = Docs.OfType<OpenFileViewModel>().FirstOrDefault(d => d.IsPreview)?.RelPath,
         };
         _store.Save();
+    }
+
+    // ------------------------------------------------------------ back / forward (Alt+← / Alt+→)
+
+    /// <summary>A place to come back to: a file and line, or the summary (empty path).</summary>
+    private readonly record struct NavLocation(string RelPath, int Line);
+
+    private const int MaxHistory = 100;
+    private readonly List<NavLocation> _back = new(), _forward = new();
+    private bool _navigating;
+
+    private static NavLocation LocationOf(TabViewModel tab) =>
+        tab is OpenFileViewModel f ? new(f.RelPath, f.CaretLine) : new("", 0);
+
+    private void PushBack(NavLocation loc)
+    {
+        if (_navigating || _restoring) return;
+        if (_back.Count > 0 && _back[^1] == loc) return;
+        _back.Add(loc);
+        if (_back.Count > MaxHistory) _back.RemoveAt(0);
+        _forward.Clear();
+        UpdateNav();
+    }
+
+    private void UpdateNav()
+    {
+        CanGoBack = _back.Count > 0;
+        CanGoForward = _forward.Count > 0;
+    }
+
+    /// <summary>A jump inside the current file (go to line, structure, markers) that Alt+← can undo.</summary>
+    public void RevealInCurrent(int line)
+    {
+        if (SelectedFile is not { } f) return;
+        PushBack(LocationOf(f));
+        f.Reveal(line);
+    }
+
+    [RelayCommand]
+    private void GoBack() => Travel(_back, _forward);
+
+    [RelayCommand]
+    private void GoForward() => Travel(_forward, _back);
+
+    private void Travel(List<NavLocation> from, List<NavLocation> to)
+    {
+        var here = SelectedDoc is null ? new NavLocation("", 0) : LocationOf(SelectedDoc);
+        while (from.Count > 0 && from[^1] == here) from.RemoveAt(from.Count - 1);
+        if (from.Count == 0) { UpdateNav(); return; }
+        var target = from[^1];
+        from.RemoveAt(from.Count - 1);
+        to.Add(here);
+        _navigating = true;
+        try
+        {
+            if (target.RelPath.Length == 0) SelectedDoc = Summary;
+            else if (OpenFile(target.RelPath, preview: true) is { } doc && target.Line > 0) doc.Reveal(target.Line);
+        }
+        finally { _navigating = false; }
+        UpdateNav();
+        EditorFocusRequested?.Invoke();
     }
 
     public bool HasUnsavedChanges => Docs.OfType<OpenFileViewModel>().Any(d => d.IsDirty);
@@ -302,6 +438,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         var parts = input.Split(':', ',');
         if (!int.TryParse(parts[0].Trim(), out var line)) return;
         int col = parts.Length > 1 && int.TryParse(parts[1].Trim(), out var c) ? c : 1;
+        PushBack(LocationOf(f));
         f.Reveal(Math.Clamp(line, 1, total), Math.Max(1, col));
         EditorFocusRequested?.Invoke();
     }
@@ -310,7 +447,16 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
     private void FocusFilter()
     {
         IsSearchMode = false;
+        IsRecentMode = false;
         FilterFocusRequested?.Invoke();
+    }
+
+    [RelayCommand]
+    private void ShowRecent()
+    {
+        IsSearchMode = false;
+        IsRecentMode = true;
+        UpdateAgo();
     }
 
     // ------------------------------------------------------------ project-wide search
@@ -318,6 +464,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
     [RelayCommand]
     private void FocusSearch()
     {
+        IsRecentMode = false;
         IsSearchMode = true;
         SearchFocusRequested?.Invoke();
     }
@@ -456,13 +603,13 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
     partial void OnSelectedSearchRowChanged(SearchRowVM? value)
     {
         if (value is null || value.IsNote) return;
-        if (value.IsMatch) OpenFile(value.RelPath, value.Line, value.Column, value.Length);
-        else OpenFile(value.RelPath);
+        if (value.IsMatch) OpenFile(value.RelPath, value.Line, value.Column, value.Length, preview: true);
+        else OpenFile(value.RelPath, preview: true);
     }
 
-    public void OpenMarker(MarkerRowVM m) => OpenFile(m.RelPath, m.Line);
+    public void OpenMarker(MarkerRowVM m) => OpenFile(m.RelPath, m.Line, preview: true);
 
-    public void OpenBigFile(BigFileVM f) => OpenFile(f.RelPath);
+    public void OpenBigFile(BigFileVM f) => OpenFile(f.RelPath, preview: true);
 
     // ------------------------------------------------------------ toolbar actions
 
@@ -523,7 +670,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
     [RelayCommand]
     private void RevealCurrent()
     {
-        if (SelectedFile is { } f) { IsSearchMode = false; FileFilter = ""; RevealInTree(f.RelPath); }
+        if (SelectedFile is { } f) { IsSearchMode = false; IsRecentMode = false; FileFilter = ""; RevealInTree(f.RelPath); }
     }
 
     [RelayCommand] private void ZoomIn() => Settings.Zoom(+1);
@@ -538,6 +685,13 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         if (SelectedFile is not { } f) return;
         if (f.IsEditing) _ = f.FinishEditingAsync();
         else f.EditCommand.Execute(null);
+    }
+
+    /// <summary>Alt+D: the current file against the last commit, and back.</summary>
+    [RelayCommand]
+    private void ToggleDiff()
+    {
+        if (SelectedFile is { } f) f.ToggleDiffCommand.Execute(null);
     }
 
     [RelayCommand]
@@ -558,17 +712,18 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
                 NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size,
                 InternalBufferSize = 64 * 1024,
             };
-            _watcher.Changed += (_, e) => OnFsEvent(e.FullPath, structural: false);
-            _watcher.Created += (_, e) => OnFsEvent(e.FullPath, structural: true);
-            _watcher.Deleted += (_, e) => OnFsEvent(e.FullPath, structural: true);
-            _watcher.Renamed += (_, e) => { OnFsEvent(e.OldFullPath, true); OnFsEvent(e.FullPath, true); };
+            _watcher.Changed += (_, e) => OnFsEvent(e.FullPath, structural: false, DiskChange.Changed);
+            _watcher.Created += (_, e) => OnFsEvent(e.FullPath, structural: true, DiskChange.Created);
+            _watcher.Deleted += (_, e) => OnFsEvent(e.FullPath, structural: true, DiskChange.Deleted);
+            // Editors and agents often save by writing a temp file and renaming it over the original.
+            _watcher.Renamed += (_, e) => { OnFsEvent(e.OldFullPath, true, DiskChange.Deleted); OnFsEvent(e.FullPath, true, DiskChange.Changed); };
             _watcher.Error += (_, _) => ScheduleTreeRefresh();
             _watcher.EnableRaisingEvents = true;
         }
         catch { /* no watching; manual refresh still works */ }
     }
 
-    private void OnFsEvent(string fullPath, bool structural)
+    private void OnFsEvent(string fullPath, bool structural, DiskChange kind)
     {
         if (_disposed || fullPath.Length <= RootPath.Length) return;
         var rel = fullPath[(RootPath.TrimEnd('\\', '/').Length + 1)..].Replace('\\', '/');
@@ -578,10 +733,164 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
             if (!rel.EndsWith(".lock", StringComparison.OrdinalIgnoreCase)) Dispatcher.UIThread.Post(() => ScheduleGitRefresh());
             return;
         }
-        foreach (var seg in rel.Split('/').SkipLast(1))
-            if (ProjectScanner.IsSkipped(seg)) return;
+        if (Rules.IsInsideIgnored(rel)) return;
+        bool isFile = File.Exists(fullPath);
         if (structural) ScheduleTreeRefresh();
-        Dispatcher.UIThread.Post(() => { ScheduleFileReload(rel); ScheduleGitRefresh(); });
+        Dispatcher.UIThread.Post(() =>
+        {
+            ScheduleFileReload(rel);
+            ScheduleGitRefresh();
+            if (isFile || (kind == DiskChange.Deleted && _knownFiles.Contains(rel))) RecordChange(rel, isFile ? kind : DiskChange.Deleted);
+        });
+    }
+
+    // ------------------------------------------------------------ recent changes / follow mode
+
+    private const int MaxRecent = 60;
+
+    /// <summary>Puts a changed file at the top of "Recent" and, in follow mode, shows it.</summary>
+    private void RecordChange(string rel, DiskChange kind)
+    {
+        if (_disposed || Git.For(rel, false) == GitChange.Ignored) return;
+        var now = DateTime.Now;
+        var row = Recent.FirstOrDefault(r => string.Equals(r.RelPath, rel, StringComparison.OrdinalIgnoreCase));
+        if (row is null)
+        {
+            if (kind == DiskChange.Changed && !_knownFiles.Contains(rel)) kind = DiskChange.Created;
+            row = new RecentChangeVM { RelPath = rel, Kind = kind, When = now };
+            Recent.Insert(0, row);
+            if (Recent.Count > MaxRecent) Recent.RemoveAt(Recent.Count - 1);
+        }
+        else
+        {
+            // A file created and then written is still "created"; one that comes back after a delete, "changed".
+            if (!(row.Kind == DiskChange.Created && kind == DiskChange.Changed)) row.Kind = kind;
+            row.When = now;
+            row.Count++;
+            int i = Recent.IndexOf(row);
+            if (i > 0) Recent.Move(i, 0);
+        }
+        if (kind != DiskChange.Deleted) _knownFiles.Add(rel);
+        row.UpdateAgo(now);
+        EnsureAgoTimer();
+        if (FollowChanges && kind != DiskChange.Deleted) ScheduleFollow(rel);
+    }
+
+    private void EnsureAgoTimer()
+    {
+        if (_agoTimer is not null) return;
+        _agoTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
+        _agoTimer.Tick += (_, _) => UpdateAgo();
+        _agoTimer.Start();
+    }
+
+    private void UpdateAgo()
+    {
+        var now = DateTime.Now;
+        foreach (var r in Recent) r.UpdateAgo(now);
+    }
+
+    public void OpenRecent(RecentChangeVM r)
+    {
+        if (r.IsDeleted) { Notice = Loc.F("pv.fileMissing", r.RelPath); return; }
+        var doc = OpenFile(r.RelPath, preview: true);
+        if (doc is not null) RevealChangeWhenReady(doc, fresh: doc.Document.TextLength == 0);
+    }
+
+    [RelayCommand]
+    private void ClearRecent() => Recent.Clear();
+
+    partial void OnFollowChangesChanged(bool value)
+    {
+        Notice = Loc.T(value ? "recent.follow.on" : "recent.follow.off");
+        if (value && Recent.FirstOrDefault(r => !r.IsDeleted) is { } latest) ScheduleFollow(latest.RelPath);
+    }
+
+    /// <summary>Follow mode: a short pause lets a burst of writes settle on the last file touched.</summary>
+    private void ScheduleFollow(string rel)
+    {
+        _followDebounce?.Cancel();
+        var cts = _followDebounce = new CancellationTokenSource();
+        Dispatcher.UIThread.Post(async () =>
+        {
+            try { await Task.Delay(150, cts.Token); } catch (OperationCanceledException) { return; }
+            if (_disposed || !FollowChanges) return;
+            // Never pull the reader away from a file being edited.
+            if (SelectedFile is { IsEditing: true }) return;
+            var existing = Docs.OfType<OpenFileViewModel>().FirstOrDefault(d => string.Equals(d.RelPath, rel, StringComparison.OrdinalIgnoreCase));
+            _navigating = true;
+            OpenFileViewModel? doc;
+            try { doc = OpenFile(rel, preview: existing is null || existing.IsPreview); }
+            finally { _navigating = false; }
+            if (doc is not null) RevealChangeWhenReady(doc, fresh: existing is null);
+        });
+    }
+
+    /// <summary>
+    /// Scrolls to where the file changed: the first line that differs from the previous version on screen when it was
+    /// already open, or from the last commit when it was just opened.
+    /// </summary>
+    private void RevealChangeWhenReady(OpenFileViewModel doc, bool fresh)
+    {
+        if (fresh)
+        {
+            var until = DateTime.UtcNow.AddSeconds(4);
+            void OnMarks()
+            {
+                if (DateTime.UtcNow > until || SelectedDoc != doc) { doc.MarksChanged -= OnMarks; return; }
+                if (doc.FirstChangedLine() is > 0 and var line) { doc.MarksChanged -= OnMarks; doc.Reveal(line); }
+            }
+            doc.MarksChanged += OnMarks;
+            OnMarks();
+        }
+        else
+        {
+            void OnReloaded()
+            {
+                doc.Reloaded -= OnReloaded;
+                if (SelectedDoc == doc && doc.LastChangeLine > 0) doc.Reveal(doc.LastChangeLine);
+            }
+            doc.Reloaded += OnReloaded;
+        }
+    }
+
+    // ------------------------------------------------------------ ignored folders
+
+    public IReadOnlyList<MenuAction> MenuForNode(FileNode? node)
+    {
+        var items = new List<MenuAction>();
+        if (node is { IsDirectory: true, IsPlaceholder: false })
+            items.Add(MenuAction.Sync(Loc.T("ignore.folder"), () => IgnoreFolder(node)));
+        items.Add(new MenuAction(Loc.T("ignore.edit"), EditIgnoredAsync));
+        return items;
+    }
+
+    /// <summary>Tree context menu: leave this folder out of the project from now on.</summary>
+    [RelayCommand]
+    private void IgnoreFolder(FileNode? node)
+    {
+        if (node is not { IsDirectory: true, IsPlaceholder: false }) return;
+        ApplyRules(_prefs.Ignore.Append(node.RelPath));
+        Notice = Loc.F("ignore.added", node.RelPath);
+    }
+
+    [RelayCommand]
+    private async Task EditIgnoredAsync()
+    {
+        var lines = await Dialogs.EditLines(Loc.T("ignore.title"), Loc.T("ignore.text"),
+            Loc.F("ignore.defaults", string.Join(", ", ProjectScanner.SkipDirs.Order(StringComparer.OrdinalIgnoreCase))), Rules.Lines);
+        if (lines is null) return;
+        ApplyRules(lines);
+        Notice = Loc.T("ignore.saved");
+    }
+
+    private void ApplyRules(IEnumerable<string> lines)
+    {
+        Rules = new IgnoreRules(lines);
+        _prefs.Ignore = Rules.Lines.ToList();
+        _store.Save();
+        RebuildTree();
+        _ = RescanAsync();
     }
 
     private void ScheduleFileReload(string rel)
@@ -623,6 +932,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
             try { if (delayMs > 0) await Task.Delay(delayMs, cts.Token); } catch (OperationCanceledException) { return; }
             var snap = await GitStatus.ReadAsync(RootPath, cts.Token);
             if (cts.IsCancellationRequested || _disposed) return;
+            _gitRead = true;
             ApplyGit(snap);
         });
     }
@@ -631,8 +941,13 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
     {
         Git.Snapshot = snap;
         HasGit = snap is not null;
+        _headId = snap is null ? null : GitStatus.ReadHeadId(snap.RepoRoot);
         foreach (var n in Tree) n.RefreshGit();
-        foreach (var d in Docs.OfType<OpenFileViewModel>()) d.Change = Git.For(d.RelPath, false);
+        foreach (var d in Docs.OfType<OpenFileViewModel>())
+        {
+            d.Change = Git.For(d.RelPath, false);
+            SetGitBase(d);
+        }
         if (snap is null)
         {
             BranchText = BranchTip = ChangesText = "";
@@ -660,6 +975,19 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         BranchTip = string.Join(Environment.NewLine, lines);
     }
 
+    /// <summary>Tells a file what to compare with: its path in HEAD (the old one if renamed) and HEAD's commit.</summary>
+    private void SetGitBase(OpenFileViewModel d)
+    {
+        // Before the first git read nothing is known yet; the refresh calls this again.
+        if (Git.Snapshot is not { } snap)
+        {
+            if (_gitRead) d.SetGitBase(null, null, GitChange.None, null);
+            return;
+        }
+        var repoPath = snap.RenamedFrom.TryGetValue(d.RelPath, out var from) ? from : GitStatus.RepoPath(snap.RepoRoot, RootPath, d.RelPath);
+        d.SetGitBase(snap.RepoRoot, repoPath, Git.For(d.RelPath, false), _headId);
+    }
+
     /// <summary>The branch in the status bar: everything git happens in GitPeach; TextPeach only shows the state.</summary>
     [RelayCommand]
     private async Task OpenInGitPeachAsync()
@@ -674,6 +1002,8 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
     public void Dispose()
     {
         _disposed = true;
+        _agoTimer?.Stop();
+        _followDebounce?.Cancel();
         _gitDebounce?.Cancel();
         _treeDebounce?.Cancel();
         _searchCts?.Cancel();

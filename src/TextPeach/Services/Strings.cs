@@ -287,5 +287,50 @@ internal static class Strings
         ["keys.refresh"] = ("Refresh tree, files, summary and git state", "Refrescar árbol, archivos, resumen y estado de git"),
         ["keys.escFilter"] = ("Esc (in the filter)", "Esc (en el filtro)"),
         ["keys.clearFilter"] = ("Clear the filter", "Limpiar el filtro"),
+        ["keys.backForward"] = ("Back / forward to where you were", "Volver atrás / adelante a donde estabas"),
+        ["keys.diff"] = ("Changes of the file against the last commit", "Cambios del archivo contra el último commit"),
+
+        // ---- back / forward
+        ["nav.back.tip"] = ("Back (Alt+←)", "Atrás (Alt+←)"),
+        ["nav.forward.tip"] = ("Forward (Alt+→)", "Adelante (Alt+→)"),
+
+        // ---- diff against the last commit
+        ["diff.button"] = ("Changes", "Cambios"),
+        ["diff.tip"] = ("Compare this file with the last commit (Alt+D)", "Comparar este archivo con el último commit (Alt+D)"),
+        ["diff.title"] = ("Against the last commit", "Contra el último commit"),
+        ["diff.inline"] = ("Inline", "En línea"),
+        ["diff.sideBySide"] = ("Side by side", "Lado a lado"),
+        ["diff.prev"] = ("Previous change", "Cambio anterior"),
+        ["diff.next"] = ("Next change", "Cambio siguiente"),
+        ["diff.tooLarge"] = ("The diff has {0:N0} lines; only the first {1:N0} are shown.", "El diff tiene {0:N0} líneas; se muestran solo las primeras {1:N0}."),
+
+        // ---- files changed on disk
+        ["recent.tab"] = ("Changes", "Cambios"),
+        ["recent.tip"] = ("Files changed on disk since the project was opened", "Archivos que cambiaron en el disco desde que abriste el proyecto"),
+        ["recent.follow"] = ("Follow", "Seguir"),
+        ["recent.followBox"] = ("Open each file as it changes", "Abrir cada archivo al cambiar"),
+        ["recent.follow.tip"] = ("Opens on its own the file that just changed on disk and jumps to the change. Handy to watch what an AI agent is doing.",
+            "Abre solo el archivo que acaba de cambiar en el disco y salta al cambio. Útil para ver qué está haciendo un agente de IA."),
+        ["recent.follow.on"] = ("Following changes: each file that changes on disk opens on its own.", "Siguiendo cambios: cada archivo que cambie en el disco se abre solo."),
+        ["recent.follow.off"] = ("No longer following changes.", "Ya no se siguen los cambios."),
+        ["recent.clear"] = ("Clear", "Limpiar"),
+        ["recent.empty"] = ("Nothing has changed on disk since the project was opened.", "Nada cambió en el disco desde que abriste el proyecto."),
+        ["recent.created"] = ("Created", "Creado"),
+        ["recent.changed"] = ("Changed", "Modificado"),
+        ["recent.deleted"] = ("Deleted", "Borrado"),
+        ["recent.now"] = ("now", "ahora"),
+        ["recent.seconds"] = ("{0} s ago", "hace {0} s"),
+        ["recent.minutes"] = ("{0} min ago", "hace {0} min"),
+        ["recent.hours"] = ("{0} h ago", "hace {0} h"),
+
+        // ---- ignored folders
+        ["ignore.folder"] = ("Ignore this folder", "Ignorar esta carpeta"),
+        ["ignore.edit"] = ("Ignored folders…", "Carpetas ignoradas…"),
+        ["ignore.added"] = ("“{0}” is now ignored in this project.", "“{0}” ahora se ignora en este proyecto."),
+        ["ignore.saved"] = ("Ignored folders saved.", "Carpetas ignoradas guardadas."),
+        ["ignore.title"] = ("Ignored folders", "Carpetas ignoradas"),
+        ["ignore.text"] = ("One folder per line. A name (dist) skips it at any depth; a path (docs/old) only that one; !name shows a folder that is ignored by default. They are left out of the tree, the search and the change list.",
+            "Una carpeta por línea. Un nombre (dist) la ignora en cualquier nivel; una ruta (docs/old), solo esa; !nombre muestra una carpeta que se ignora por defecto. Quedan fuera del árbol, la búsqueda y la lista de cambios."),
+        ["ignore.defaults"] = ("Always ignored: {0}", "Siempre ignoradas: {0}"),
     };
 }

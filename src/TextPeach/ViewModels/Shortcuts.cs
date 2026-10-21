@@ -21,6 +21,8 @@ public static class Shortcuts
         ("Ctrl+Shift+E", Loc.T("keys.filterTree")),
         ("Ctrl+F", Loc.T("keys.findInFile")),
         ("Ctrl+G", Loc.T("keys.goToLine")),
+        ("Alt+← / Alt+→", Loc.T("keys.backForward")),
+        ("Alt+D", Loc.T("keys.diff")),
         ("Ctrl+PageDown / PageUp", Loc.T("keys.nextFile")),
         ("Ctrl+E", Loc.T("keys.edit")),
         ("Ctrl+S", Loc.T("keys.save")),

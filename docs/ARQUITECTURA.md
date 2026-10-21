@@ -1,7 +1,10 @@
 # Arquitectura de TextPeach
 
-Visor y analizador de código de solo lectura, de la familia Peach (ver [DISENO.md](DISENO.md)).
+<!-- peach-hijo: ARQUITECTURA v1.0 -->
+Visor y analizador de código de solo lectura (el diseño está en [DISENO.md](DISENO.md)).
 **Patrón:** MVVM con CommunityToolkit.Mvvm. Las vistas enlazan; la lógica pura vive en `Services/` y está testeada.
+Los servicios marcados como *comunes* (`PeachApps`, `SingleInstance`, `Loc`, `GitStatus`…) son iguales en
+GitPeach y RestPeach; si los cambias, avísalo en el *pull request*.
 
 ```
 Views (XAML + code-behind del editor)
@@ -19,7 +22,10 @@ ViewModels ── MainWindowViewModel ─┬─ HomeViewModel (lista de proyecto
 | `Services/` | `ProjectStore` (state.json), `ProjectScanner` (lista de archivos, tipo de proyecto), `FileLoader` (codificación, binarios, límites), `FileAnalyzer` (métricas, outline y marcadores por regex), `Languages` (extensión → lenguaje, color, comentarios), `Highlighting` (gramáticas TextMate + tema `peach-dark.json`), `PeachApps` (carpeta compartida y `location.json`), `GitStatus` (estado de git de solo lectura), `GitPeachLocator` (dónde está GitPeach), `Loc` + `Strings` (textos en inglés y español). |
 | `ViewModels/` | Estado de pantalla. `ViewerSettings` (fuente, ajuste de línea, espacios) es compartido por todas las pestañas. |
 | `Views/` | `ProjectView` hospeda **un único** `TextEditor` (AvaloniaEdit) y le cambia el `TextDocument` según la pestaña; guarda/restaura cursor y scroll por archivo. Avalonia recicla la vista entre pestañas de proyecto, así que todo se reengancha en `DataContextChanged`. |
-| `Controls/` | `Palette`, `Folding` (plegado por llaves, indentación, etiquetas XML o títulos Markdown) y `DocumentRenderer` (Markdig → controles nativos para la vista renderizada). |
+| `Controls/` | `Palette`, `Folding` (plegado por llaves, indentación, etiquetas XML o títulos Markdown), `DocumentRenderer` (Markdig → controles nativos para la vista renderizada), `ChangeMarkers` (`GitChangeMargin` junto a los números de línea y `OverviewRuler` junto al scroll), `DiffView` (diff en línea o lado a lado) y `SyntaxColoring` (instala TextMate y repinta mientras tokeniza). |
+
+`Services/` también tiene `LineDiff` (diff por líneas de Myers, marcas por línea y pares para lado a lado, puro y
+testeado) e `IgnoreRules` (carpetas ignoradas del proyecto más las de siempre).
 
 ## Lista de proyectos y grupos
 
@@ -64,6 +70,27 @@ verifica que cada clave usada exista en ambos idiomas con los mismos marcadores.
 4. La vista instala TextMate y el plegado sobre el documento; el editor queda en solo lectura.
 5. "Editar" habilita la escritura; "Guardar" escribe con la misma codificación; un `FileSystemWatcher` recarga
    el archivo si cambia en disco (o avisa si se está editando).
+
+## Cambios contra el último commit
+
+Cuando el estado de git llega, `ProjectViewModel` le pasa a cada `OpenFileViewModel` su ruta en el repositorio y
+su estado (`SetGitBase`). El archivo lee la versión de `HEAD` con `GitStatus.ReadHeadTextAsync`
+(`git show HEAD:<ruta>`, con límite de tiempo y tamaño) y calcula en segundo plano `LineDiff.Compute` y
+`LineDiff.Marks`. Publica `Marks`, `DiffRows`, `HasChanges` y `DiffStats` y avisa con `MarksChanged`; la vista
+pinta el margen y la regla y, si el diff está abierto, lo reconstruye conservando la posición. Un archivo sin
+seguimiento es todo "agregado"; uno sin cambios según git no lee nada.
+
+## Navegación: vista previa, historial y seguir cambios
+
+- `OpenFile(rel, preview: true)` reutiliza la única pestaña de vista previa (si no tiene cambios); `Pin` la fija.
+  Un clic en el árbol abre en vista previa, el doble clic fija.
+- Cada salto (cambio de pestaña, `RevealInCurrent`, ir a línea) guarda la ubicación anterior en una pila de
+  atrás; `GoBack`/`GoForward` viajan entre las dos pilas sin registrar el viaje.
+- El *watcher* del proyecto alimenta `Recent` (`RecentChangeVM`: creado, modificado o borrado, con la hora). Con
+  `FollowChanges` activo, cada cambio abre el archivo en vista previa (con un *debounce* de 150 ms) y salta a la
+  primera línea que cambió, salvo que el archivo actual se esté editando.
+- Las carpetas ignoradas y la vista elegida por archivo (renderizada o código) se guardan por proyecto en
+  `state.json` (`ProjectPrefs`).
 
 ## Desarrollo
 
