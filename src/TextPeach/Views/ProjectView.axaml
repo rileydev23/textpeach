@@ -69,6 +69,8 @@
             <TextBlock Text="{Binding ChangesText}" Classes="dim" VerticalAlignment="Center" IsVisible="{Binding !!ChangesText.Length}" />
           </StackPanel>
         </Button>
+        <TextBlock DockPanel.Dock="Left" Classes="dim" Text="{l:L git.none}" IsVisible="{Binding ShowNoGit}"
+                   ToolTip.Tip="{Binding NoGitTip}" VerticalAlignment="Center" Margin="0,0,14,0" />
         <TextBlock Classes="dim" Text="{Binding Notice}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
       </DockPanel>
     </Border>

@@ -44,6 +44,9 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
     [ObservableProperty] private string _branchText = "";
     [ObservableProperty] private string _branchTip = "";
     [ObservableProperty] private string _changesText = "";
+    /// <summary>Shown instead of the branch when there is no git information, with the reason as tooltip.</summary>
+    [ObservableProperty] private string _noGitTip = "";
+    [ObservableProperty] private bool _showNoGit;
 
     /// <summary>Latest git state of the project (read-only: TextPeach shows it, GitPeach acts on it).</summary>
     public GitDecorations Git { get; } = new();
@@ -630,7 +633,19 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         HasGit = snap is not null;
         foreach (var n in Tree) n.RefreshGit();
         foreach (var d in Docs.OfType<OpenFileViewModel>()) d.Change = Git.For(d.RelPath, false);
-        if (snap is null) { BranchText = BranchTip = ChangesText = ""; return; }
+        if (snap is null)
+        {
+            BranchText = BranchTip = ChangesText = "";
+            // Any folder can be a project; without git only the git extras are missing, and the summary says why.
+            NoGitTip = Loc.T(GitStatus.FindRepoRoot(RootPath) is null ? "git.none.notRepo"
+                : !GitStatus.IsAvailable ? "git.none.noGit" : "git.none.failed");
+            ShowNoGit = true;
+            Summary.GitWarning = NoGitTip;
+            return;
+        }
+        ShowNoGit = false;
+        NoGitTip = "";
+        Summary.GitWarning = "";
 
         var name = snap.Detached ? GitStatus.ReadDetachedCommit(snap.RepoRoot) ?? "HEAD" : snap.Branch;
         var sync = (snap.Ahead > 0 ? $" ↑{snap.Ahead}" : "") + (snap.Behind > 0 ? $" ↓{snap.Behind}" : "");

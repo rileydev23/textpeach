@@ -274,7 +274,8 @@ Esquinas: 3 px controles, 4 px tarjetas, 0 en segmentos y pestañas. No hay somb
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│  🍑 TextPeach  proyecto · C:uta                               ─   ☐   ✕   │  ← título    #111214 (40 px)
+│  🍑 TextPeach  proyecto · C:
+uta                               ─   ☐   ✕   │  ← título    #111214 (34 px)
 ├──────────────────────────────────────────────────────────────────────────────┤
 │▌Proyectos▐│ proyecto-a ✕ │ proyecto-b ✕ │                              │  ? │  ← pestañas  #18191c
 ├──────────────────────────────────────────────────────────────────────────────┤
@@ -291,10 +292,10 @@ Esquinas: 3 px controles, 4 px tarjetas, 0 en segmentos y pestañas. No hay somb
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Barra de título propia** (`Border.titlebar`, 40 px, `#111214`): la ventana no usa el marco de Windows
-  (`ExtendClientAreaToDecorationsHint=True`, `ExtendClientAreaChromeHints=NoChrome`). A la izquierda, con 16 px de
-  margen: icono 20 px, nombre de la app SemiBold y, en `dim` 12 px, el elemento abierto y su ruta
-  ("textpeach · C:\…"). A la derecha, botones `Button.caption` de 46×40 dibujados con `Path` de 10 px y trazo
+- **Barra de título propia** (`Border.titlebar`, 34 px, `#111214`): la ventana no usa el marco de Windows
+  (`ExtendClientAreaToDecorationsHint=True`, `ExtendClientAreaChromeHints=NoChrome`). A la izquierda, con 14 px de
+  margen: icono 18 px, nombre de la app SemiBold y, en `dim` 12 px, el elemento abierto y su ruta
+  ("textpeach · C:\…"). A la derecha, botones `Button.caption` de 46×34 dibujados con `Path` de 10 px y trazo
   1 px `#a8abb2` (minimizar, maximizar/restaurar, cerrar); *hover* `#26272b` y blanco; cerrar en *hover* rojo
   `#e0645a`. Arrastrar el espacio vacío mueve la ventana y el doble clic maximiza o restaura. El contenido usa
   `Margin="{Binding $parent[Window].OffScreenMargin}"` para no quedar fuera de pantalla al maximizar. El título
@@ -345,6 +346,9 @@ sueltos, salvo en fondos de franjas.
 | `seg` (+ `active`) | transparente, subrayado inferior 2 px; activo: subrayado `#4a90d9`, texto blanco SemiBold | Conmutador de vistas dentro de un panel (Archivos / Buscar). |
 | `ToggleButton` | como botón; marcado `#33507a` | Filtros persistentes (★ Favoritos). |
 | `ToggleButton.chip` | chip pequeño 11 px | Opciones de búsqueda (`Aa`, `ab|`, `.*`). |
+
+**Cursor:** mano (`Hand`) en todo lo que se pulsa como botón o enlace (`Button`, `ToggleButton`, `SplitButton`,
+enlaces de documentos); flecha en filas de listas, árbol, pestañas, botones de ventana y botones deshabilitados.
 
 Etiquetas: verbo o sustantivo corto. Si abre un diálogo, termina en `...` ("Agregar proyecto...").
 Los botones de una sola letra o glifo (`✕`, `+`, `−`, `↶`, `⋯`) siempre llevan `ToolTip.Tip`.
@@ -502,6 +506,13 @@ nada.
   que usa GitPeach cuando no encuentra TextPeach ([8.7](#87-integración-con-el-sistema)).
 - Se actualiza con *debounce* (600 ms) ante cualquier cambio de la carpeta o de `.git` (salvo `*.lock`) y con
   F5.
+
+### 7.15b Proyectos sin git
+
+Cualquier carpeta puede ser un proyecto. Sin git solo faltan los extras de git: la barra de estado dice
+"Sin git" en `dim` (tooltip con el motivo) y el **Resumen** muestra arriba una tarjeta de aviso
+(`Border.warning`: fondo `#2d2e33`, borde ámbar `#8a6d1f` con 3 px a la izquierda, `⚠` ámbar) con el motivo:
+no es un repositorio, git no está instalado o git no respondió.
 
 ### 7.16 Barras de desplazamiento
 

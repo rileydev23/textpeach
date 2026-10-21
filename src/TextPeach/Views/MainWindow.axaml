@@ -47,8 +47,8 @@
             <Path Data="M0.5,0.5 L9.5,9.5 M9.5,0.5 L0.5,9.5" />
           </Button>
         </StackPanel>
-        <StackPanel Orientation="Horizontal" Spacing="10" Margin="16,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
-          <Image Source="/Assets/icon64.png" Width="20" Height="20" />
+        <StackPanel Orientation="Horizontal" Spacing="9" Margin="14,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
+          <Image Source="/Assets/icon64.png" Width="18" Height="18" />
           <TextBlock Text="TextPeach" FontWeight="SemiBold" VerticalAlignment="Center" />
           <TextBlock Text="{Binding Subtitle}" Classes="dim" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
         </StackPanel>

@@ -21,6 +21,11 @@ public sealed partial class SummaryViewModel : TabViewModel
     [ObservableProperty] private IReadOnlyList<BigFileVM> _largest = Array.Empty<BigFileVM>();
     [ObservableProperty] private IReadOnlyList<MarkerRowVM> _markers = Array.Empty<MarkerRowVM>();
     [ObservableProperty] private string _markersHeader = "";
+    /// <summary>Why there is no git information (not a repository, no git…); empty when git works.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasGitWarning))]
+    private string _gitWarning = "";
+    public bool HasGitWarning => GitWarning.Length > 0;
 
     private CancellationTokenSource? _cts;
 

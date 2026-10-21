@@ -57,14 +57,14 @@
     <Setter Property="Foreground" Value="White" />
   </Style>
 
-  <!-- Title bar (custom, the window has no system chrome): 40 px, a level darker than the tab strip. -->
+  <!-- Title bar (custom, the window has no system chrome): 34 px, a level darker than the tab strip. -->
   <Style Selector="Border.titlebar">
-    <Setter Property="Height" Value="40" />
+    <Setter Property="Height" Value="34" />
     <Setter Property="Background" Value="#111214" />
   </Style>
   <Style Selector="Button.caption">
     <Setter Property="Width" Value="46" />
-    <Setter Property="Height" Value="40" />
+    <Setter Property="Height" Value="34" />
     <Setter Property="Padding" Value="0" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
@@ -266,6 +266,33 @@
     <Setter Property="Width" Value="12" />
     <Setter Property="Height" Value="16" />
     <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <!-- Hand cursor on everything that is clicked like a button or a link; lists, tree, tabs and the window buttons
+       keep the arrow, as in Windows. -->
+  <Style Selector="Button">
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="ToggleButton">
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="SplitButton">
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.caption">
+    <Setter Property="Cursor" Value="Arrow" />
+  </Style>
+  <Style Selector="Button:disabled, ToggleButton:disabled">
+    <Setter Property="Cursor" Value="Arrow" />
+  </Style>
+
+  <!-- Warning card inside a page (e.g. the project summary): amber edge, never a modal. -->
+  <Style Selector="Border.warning">
+    <Setter Property="Background" Value="#2d2e33" />
+    <Setter Property="BorderBrush" Value="#8a6d1f" />
+    <Setter Property="BorderThickness" Value="3,1,1,1" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="12,10" />
   </Style>
 
   <Style Selector="GridSplitter">

@@ -22,6 +22,14 @@
         </StackPanel>
       </DockPanel>
 
+      <!-- No git: the project works, only the git extras are missing -->
+      <Border Classes="warning" IsVisible="{Binding HasGitWarning}">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Left" Text="⚠" Foreground="#e0a24a" FontSize="14" VerticalAlignment="Top" Margin="0,0,10,0" />
+          <TextBlock Text="{Binding GitWarning}" TextWrapping="Wrap" VerticalAlignment="Center" />
+        </DockPanel>
+      </Border>
+
       <!-- Stat tiles -->
       <ItemsControl ItemsSource="{Binding Tiles}">
         <ItemsControl.ItemsPanel>
