@@ -46,6 +46,7 @@
 - [Compilar desde el código](#compilar-desde-el-código)
 - [Estructura del repositorio](#estructura-del-repositorio)
 - [Contribuir](#contribuir)
+- [Versiones y releases](#versiones-y-releases)
 - [Licencia y créditos](#licencia-y-créditos)
 
 ---
@@ -438,6 +439,33 @@ Convenciones:
 - Mantén TextPeach de solo lectura por defecto: cualquier acción que escriba en disco debe ser explícita, y
   git solo se lee.
 
+## Versiones y releases
+
+TextPeach está en **0.x**: ya se puede usar a diario, pero todavía puede cambiar bastante. La **1.0.0** llegará
+cuando la app esté estable y tenga su icono definitivo.
+
+Las versiones siguen [SemVer](https://semver.org) (`MAYOR.MENOR.PARCHE`) y el repositorio usa *GitHub Flow*:
+una sola rama principal, `main`, sin ramas intermedias (`develop`, `release/…`).
+
+```
+feature/algo ──PR──┐
+fix/otro ─────PR───┼──▶ main ──(cuando el mantenedor decide)──▶ release v0.4.0 + TextPeach.exe
+docs/tal ─────PR───┘
+```
+
+1. **Cada cambio va en su rama** (`feature/…`, `fix/…`, `docs/…`, `refactor/…`, `chore/…`) y entra a `main`
+   con un *pull request* revisado y con la CI en verde. Nadie sube directo a `main`.
+2. **Cada merge actualiza un borrador del próximo release** con las notas agrupadas por tipo. La versión se
+   calcula sola a partir de las ramas: si entró algún `feature/` sube la menor (0.3.2 → 0.4.0); si no, el
+   parche (0.3.2 → 0.3.3).
+3. **Un merge no es un release.** Se pueden juntar varios *pull requests* en el borrador y publicarlo cuando
+   haya algo que valga la pena entregar. Publicarlo crea el tag `vX.Y.Z` y un workflow compila
+   `TextPeach.exe` con esa versión y lo adjunta al release.
+4. Mientras sea 0.x, los cambios incompatibles también suben solo la versión menor. Para sacar la **1.0.0**,
+   el mantenedor cambia la versión del borrador a mano justo antes de publicarlo.
+
+`main` siempre debe compilar y pasar los tests: es la base de cada release.
+
 ## Licencia y créditos
 
 Copyright © 2026 [rileydev23](https://github.com/rileydev23). TextPeach es software libre bajo la
@@ -453,6 +481,9 @@ familia Peach. En resumen:
 
 **Nombre y logo:** la GPL cubre el código, no la marca. "TextPeach" y su logo identifican a la versión
 oficial; si publicas un fork, ponle otro nombre y otro logo.
+
+**Sobre el icono:** el icono actual se hizo con IA. Si quieres proponer uno mejor, hecho por una persona,
+¡encantado de cambiarlo! Abre un *issue* con tu propuesta.
 
 El texto que vale es el de [LICENSE](LICENSE).
 

@@ -46,6 +46,7 @@
 - [Building from source](#building-from-source)
 - [Repository layout](#repository-layout)
 - [Contributing](#contributing)
+- [Versions and releases](#versions-and-releases)
 - [License and credits](#license-and-credits)
 
 ---
@@ -431,6 +432,33 @@ Conventions:
 - Keep TextPeach read-only by default: any action that writes to disk must be explicit, and git is only
   read.
 
+## Versions and releases
+
+TextPeach is at **0.x**: it is usable every day, but it can still change quite a bit. **1.0.0** will come once
+the app is stable and has its final icon.
+
+Versions follow [SemVer](https://semver.org) (`MAJOR.MINOR.PATCH`) and the repository uses *GitHub Flow*: a
+single main branch, `main`, with no intermediate branches (`develop`, `release/…`).
+
+```
+feature/thing ──PR──┐
+fix/other ─────PR───┼──▶ main ──(when the maintainer decides)──▶ release v0.4.0 + TextPeach.exe
+docs/stuff ────PR───┘
+```
+
+1. **Every change lives in its own branch** (`feature/…`, `fix/…`, `docs/…`, `refactor/…`, `chore/…`) and
+   reaches `main` through a reviewed *pull request* with green CI. Nobody pushes straight to `main`.
+2. **Every merge updates a draft of the next release** with the notes grouped by kind. The version is worked
+   out from the branches: any `feature/` raises the minor version (0.3.2 → 0.4.0), otherwise the patch
+   (0.3.2 → 0.3.3).
+3. **A merge is not a release.** Several pull requests can pile up in the draft, and it is published when
+   there is something worth shipping. Publishing it creates the `vX.Y.Z` tag, and a workflow builds
+   `TextPeach.exe` with that version and attaches it to the release.
+4. While on 0.x, breaking changes also raise only the minor version. For **1.0.0**, the maintainer changes the
+   draft's version by hand right before publishing it.
+
+`main` must always build and pass the tests: every release is cut from it.
+
 ## License and credits
 
 Copyright © 2026 [rileydev23](https://github.com/rileydev23). TextPeach is free software under the
@@ -445,6 +473,9 @@ family. In short:
 
 **Name and logo:** the GPL covers the code, not the brand. "TextPeach" and its logo identify the official
 version; if you publish a fork, give it another name and logo.
+
+**About the icon:** the current icon was made with AI. If you would like to propose a better one, made by a
+person, I am happy to change it! Open an *issue* with your proposal.
 
 The binding text is the one in [LICENSE](LICENSE).
 

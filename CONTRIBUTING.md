@@ -70,8 +70,11 @@ Versions follow [SemVer](https://semver.org) and nobody edits a version number b
 
 - Each pull request gets a label from its branch name (`feature/` → `enhancement`, `fix/` → `bug`, …), and
   every merge updates a **draft release** with the notes grouped by kind.
-- The next version comes from those labels: any `enhancement` raises the minor version (1.2.0 → 1.3.0),
-  otherwise the patch (1.2.0 → 1.2.1). The maintainer adds the `breaking` label for a major one.
+- The next version comes from those labels: any `enhancement` raises the minor version (0.3.0 → 0.4.0),
+  otherwise the patch (0.3.0 → 0.3.1).
+- TextPeach is still at **0.x**, so breaking changes raise the minor version too. The maintainer sets
+  **1.0.0** by hand on the draft when the time comes; after that, the `breaking` label raises the major one.
+- A merge is not a release: the draft collects several pull requests and is published when it is worth it.
 - When the maintainer publishes the draft, the tag `vX.Y.Z` is created and a workflow builds `TextPeach.exe`
   with that version and attaches it to the release.
 
@@ -158,8 +161,11 @@ Las versiones siguen [SemVer](https://semver.org) y nadie cambia el número de v
 - Cada *pull request* recibe una etiqueta según el nombre de su rama (`feature/` → `enhancement`, `fix/` →
   `bug`, …), y cada merge actualiza un **borrador del próximo release** con las notas agrupadas por tipo.
 - La versión siguiente sale de esas etiquetas: si hay algún `enhancement` sube la versión menor
-  (1.2.0 → 1.3.0); si no, el parche (1.2.0 → 1.2.1). El mantenedor agrega la etiqueta `breaking` para una
-  versión mayor.
+  (0.3.0 → 0.4.0); si no, el parche (0.3.0 → 0.3.1).
+- TextPeach todavía está en **0.x**, así que los cambios incompatibles también suben la versión menor. El
+  mantenedor pone la **1.0.0** a mano en el borrador cuando llegue el momento; desde ahí, la etiqueta
+  `breaking` sube la versión mayor.
+- Un merge no es un release: el borrador junta varios *pull requests* y se publica cuando vale la pena.
 - Cuando el mantenedor publica el borrador, se crea el tag `vX.Y.Z` y un workflow compila `TextPeach.exe` con
   esa versión y lo adjunta al release.
 
