@@ -81,9 +81,13 @@ public class GitStatusTests
     [Fact]
     public void GitPeachIsLookedUpNextToTextPeachFirst()
     {
-        var found = GitPeachLocator.Find(p => p == @"D:\apps\GitPeach\GitPeach.exe" || p == @"D:\tools\GitPeach.exe",
-            @"D:\apps\TextPeach\", null, null, @"D:\tools");
-        Assert.Equal(@"D:\apps\GitPeach\GitPeach.exe", found);
+        // Native paths, so it also holds on Linux, where '\' is not a separator.
+        var apps = Path.Combine(Path.GetTempPath(), "apps");
+        var tools = Path.Combine(Path.GetTempPath(), "tools");
+        var sibling = Path.Combine(apps, "GitPeach", "GitPeach.exe");
+        var found = GitPeachLocator.Find(p => p == sibling || p == Path.Combine(tools, "GitPeach.exe"),
+            Path.Combine(apps, "TextPeach") + Path.DirectorySeparatorChar, null, null, tools);
+        Assert.Equal(sibling, found);
     }
 }
 
