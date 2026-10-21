@@ -47,6 +47,8 @@ version-resolver:
 template: |
   $CHANGES
 
-  **Download / Descarga:** `TextPeach.exe` below — portable, no installation needed. / abajo — portable, no requiere instalación.
+  **Download / Descarga** (portable, no installation needed / portable, no requiere instalación):
+  - Windows: `TextPeach.exe`
+  - Linux: `TextPeach-linux-x64.tar.gz` (`tar -xzf TextPeach-linux-x64.tar.gz && ./TextPeach`)
 
   **Full changelog:** https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
