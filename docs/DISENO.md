@@ -274,6 +274,8 @@ Esquinas: 3 px controles, 4 px tarjetas, 0 en segmentos y pestañas. No hay somb
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
+│  🍑 TextPeach  proyecto · C:uta                               ─   ☐   ✕   │  ← título    #111214 (40 px)
+├──────────────────────────────────────────────────────────────────────────────┤
 │▌Proyectos▐│ proyecto-a ✕ │ proyecto-b ✕ │                              │  ? │  ← pestañas  #18191c
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ [Acción] [Acción] │ [Acción]   info verde               [Externo] [Externo] │  ← toolbar   #26272b
@@ -289,8 +291,16 @@ Esquinas: 3 px controles, 4 px tarjetas, 0 en segmentos y pestañas. No hay somb
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Barra de pestañas** (`#18191c`, borde inferior): **sin icono** (el icono solo va en la barra de título
-  de la ventana). A la izquierda, el botón fijo de la Home (`Button.home`: "Repositorios" / "Proyectos"),
+- **Barra de título propia** (`Border.titlebar`, 40 px, `#111214`): la ventana no usa el marco de Windows
+  (`ExtendClientAreaToDecorationsHint=True`, `ExtendClientAreaChromeHints=NoChrome`). A la izquierda, con 16 px de
+  margen: icono 20 px, nombre de la app SemiBold y, en `dim` 12 px, el elemento abierto y su ruta
+  ("textpeach · C:\…"). A la derecha, botones `Button.caption` de 46×40 dibujados con `Path` de 10 px y trazo
+  1 px `#a8abb2` (minimizar, maximizar/restaurar, cerrar); *hover* `#26272b` y blanco; cerrar en *hover* rojo
+  `#e0645a`. Arrastrar el espacio vacío mueve la ventana y el doble clic maximiza o restaura. El contenido usa
+  `Margin="{Binding $parent[Window].OffScreenMargin}"` para no quedar fuera de pantalla al maximizar. El título
+  de la ventana (barra de tareas, Alt+Tab) es "elemento — App".
+- **Barra de pestañas** (`#18191c`, borde inferior, alto mínimo 36 px aunque no haya pestañas): **sin icono**
+  (el icono solo va en la barra de título). A la izquierda, el botón fijo de la Home (`Button.home`: "Repositorios" / "Proyectos"),
   después las pestañas de elementos y, a la derecha, el botón `?` (F1, "Acerca de"). Pestaña seleccionada
   en `#33507a`. Tooltip de cada pestaña: la ruta completa.
 - **Botón Home (`Button.home`)**: no es una pestaña más, es un lanzador de otro nivel. Fondo más oscuro

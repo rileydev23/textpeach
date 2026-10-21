@@ -173,8 +173,15 @@ public partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private void ShowHome() => SelectedTab = Home;
 
+    /// <summary>Next to the app name in the title bar: the open project and where it lives.</summary>
+    public string Subtitle => SelectedTab is ProjectViewModel p ? $"{p.Title}  ·  {p.RootPath}" : "";
+    /// <summary>Taskbar and Alt+Tab text.</summary>
+    public string WindowTitle => SelectedTab is ProjectViewModel p ? $"{p.Title} — TextPeach" : "TextPeach";
+
     partial void OnSelectedTabChanged(TabViewModel? value)
     {
+        OnPropertyChanged(nameof(Subtitle));
+        OnPropertyChanged(nameof(WindowTitle));
         OnPropertyChanged(nameof(IsHomeSelected));
         OnPropertyChanged(nameof(SelectedProjectTab));
         if (_ready) SaveTabs();
