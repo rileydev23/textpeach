@@ -3,6 +3,8 @@ rem Builds a single-file, self-contained, portable TextPeach.exe into .\dist
 setlocal
 cd /d "%~dp0"
 if exist dist rmdir /s /q dist
+rem Always from scratch: a stale incremental Release build can ship without the compiled XAML (the exe dies at startup).
+if exist src\TextPeach\obj\Release rmdir /s /q src\TextPeach\obj\Release
 dotnet publish src\TextPeach\TextPeach.csproj -c Release -r win-x64 --self-contained ^
   -p:PublishSingleFile=true ^
   -p:PublishReadyToRun=true ^
