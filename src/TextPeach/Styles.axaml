@@ -15,6 +15,8 @@
     <SolidColorBrush x:Key="ToggleButtonBackgroundChecked" Color="#33507a" />
     <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPointerOver" Color="#3a5a88" />
     <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPressed" Color="#33507a" />
+    <!-- Scroll bars: slimmer than Fluent's default when they expand under the pointer. -->
+    <x:Double x:Key="ScrollBarSize">10</x:Double>
   </Styles.Resources>
 
   <Style Selector="Window">
@@ -151,6 +153,30 @@
     <Setter Property="Background" Value="#2d2e33" />
   </Style>
 
+  <!-- Tab strips (ListBox.tabstrip): the horizontal bar gets its own 4 px row under the tabs instead of
+       growing over them, has no arrow buttons, and the wheel scrolls sideways (Views/TabStrip.cs). -->
+  <Style Selector="ListBox.tabstrip">
+    <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
+    <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Disabled" />
+    <Setter Property="ScrollViewer.AllowAutoHide" Value="False" />
+  </Style>
+  <Style Selector="ListBox.tabstrip ScrollBar:horizontal">
+    <Setter Property="MinHeight" Value="4" />
+    <Setter Property="Height" Value="4" />
+  </Style>
+  <Style Selector="ListBox.tabstrip ScrollBar:horizontal /template/ RepeatButton#PART_LineUpButton">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+  <Style Selector="ListBox.tabstrip ScrollBar:horizontal /template/ RepeatButton#PART_LineDownButton">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+  <Style Selector="ListBox.tabstrip ScrollBar:horizontal /template/ Thumb">
+    <Setter Property="Height" Value="4" />
+    <Setter Property="MinWidth" Value="24" />
+    <Setter Property="CornerRadius" Value="2" />
+    <Setter Property="RenderTransform" Value="none" />
+  </Style>
+
   <!-- File tab strip inside a project: selected tab blends into the header below it. -->
   <Style Selector="ListBox.doctabs ListBoxItem">
     <Setter Property="BorderBrush" Value="#3a3c42" />
@@ -171,6 +197,31 @@
   </Style>
   <Style Selector="TreeViewItem /template/ ToggleButton#PART_ExpandCollapseChevron">
     <Setter Property="Margin" Value="6,0,4,0" />
+  </Style>
+
+  <!-- Git state (read-only): letter at the right of a row, and the branch in the status bar. -->
+  <Style Selector="TextBlock.gitstatus">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Margin" Value="8,0,8,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.branch">
+    <Setter Property="Foreground" Value="#a9acb2" />
+    <Setter Property="Padding" Value="4,0" />
+    <Setter Property="Margin" Value="-4,0,12,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.branch:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#2d2e33" />
+    <Setter Property="Foreground" Value="#ffffff" />
+  </Style>
+  <Style Selector="Path.branch">
+    <Setter Property="Stroke" Value="#8a8d93" />
+    <Setter Property="StrokeThickness" Value="1.2" />
+    <Setter Property="Width" Value="12" />
+    <Setter Property="Height" Value="16" />
+    <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
   <Style Selector="GridSplitter">

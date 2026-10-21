@@ -55,8 +55,8 @@ public sealed partial class OpenFileViewModel : TabViewModel, IDisposable
     public bool IsImage => Kind == FileKind.Image;
     public bool IsNote => Kind is FileKind.Binary or FileKind.TooLarge or FileKind.Error;
     public bool CanEdit => Kind == FileKind.Text && !IsEditing && !IsLoading;
-    public string OutlineHeader => $"Estructura ({Outline.Count})";
-    public string MarkersHeader => $"Marcadores ({Markers.Count})";
+    public string OutlineHeader => Loc.F("file.outline", Outline.Count);
+    public string MarkersHeader => Loc.F("file.markers", Markers.Count);
 
     // Where the reader was, so switching tabs comes back to the same spot.
     public int CaretOffset { get; set; }
@@ -171,21 +171,21 @@ public sealed partial class OpenFileViewModel : TabViewModel, IDisposable
                 catch (Exception ex)
                 {
                     Kind = FileKind.Error;
-                    NoteText = "No se pudo mostrar la imagen: " + ex.Message;
+                    NoteText = Loc.F("file.imageError", ex.Message);
                 }
                 break;
             case FileKind.Binary:
-                NoteText = $"Archivo binario no mostrado ({FileLoader.FormatSize(_size)})";
+                NoteText = Loc.F("file.binary", FileLoader.FormatSize(_size));
                 break;
             case FileKind.TooLarge:
-                NoteText = $"Archivo demasiado grande para mostrarlo ({FileLoader.FormatSize(_size)}, límite {FileLoader.FormatSize(FileLoader.MaxTextBytes)})";
+                NoteText = Loc.F("file.tooLarge", FileLoader.FormatSize(_size), FileLoader.FormatSize(FileLoader.MaxTextBytes));
                 break;
             case FileKind.Error:
-                NoteText = "No se pudo leer el archivo: " + loaded.Error;
+                NoteText = Loc.F("file.readError", loaded.Error);
                 break;
         }
         IsLoading = false;
-        InfoText = $"{FileLoader.FormatSize(_size)} · modificado {_modified:yyyy-MM-dd HH:mm}";
+        InfoText = Loc.F("file.info", FileLoader.FormatSize(_size), _modified);
         if (Kind == FileKind.Text)
         {
             await AnalyzeNowAsync();
@@ -196,9 +196,9 @@ public sealed partial class OpenFileViewModel : TabViewModel, IDisposable
         {
             Metrics = new[]
             {
-                new MetricRow { Label = "Tipo", Value = Kind switch { FileKind.Image => "Imagen", FileKind.Binary => "Binario", FileKind.TooLarge => "Texto (muy grande)", _ => "Error" } },
-                new MetricRow { Label = "Tamaño", Value = FileLoader.FormatSize(_size) },
-                new MetricRow { Label = "Modificado", Value = _modified == default ? "—" : _modified.ToString("yyyy-MM-dd HH:mm") },
+                new MetricRow { Label = Loc.T("metric.type"), Value = Kind switch { FileKind.Image => Loc.T("metric.type.image"), FileKind.Binary => Loc.T("metric.type.binary"), FileKind.TooLarge => Loc.T("metric.type.tooLarge"), _ => Loc.T("metric.type.error") } },
+                new MetricRow { Label = Loc.T("metric.size"), Value = FileLoader.FormatSize(_size) },
+                new MetricRow { Label = Loc.T("metric.modified"), Value = _modified == default ? "—" : _modified.ToString("yyyy-MM-dd HH:mm") },
             };
         }
     }
@@ -209,7 +209,7 @@ public sealed partial class OpenFileViewModel : TabViewModel, IDisposable
         if (DateTime.UtcNow < _ignoreDiskUntil) return;
         if (!File.Exists(FullPath))
         {
-            NoteText = "El archivo ya no existe en el disco.";
+            NoteText = Loc.T("file.gone");
             ChangedOnDisk = true;
             return;
         }
@@ -254,29 +254,29 @@ public sealed partial class OpenFileViewModel : TabViewModel, IDisposable
         var warn = Palette.Amber;
         var rows = new List<MetricRow>
         {
-            new() { Label = "Líneas", Value = $"{a.Lines:N0}" },
+            new() { Label = Loc.T("metric.lines"), Value = $"{a.Lines:N0}" },
         };
         if (!Language.IsProse)
         {
             double ratio = a.Code + a.Comment > 0 ? 100.0 * a.Comment / (a.Code + a.Comment) : 0;
-            rows.Add(new() { Label = "Código", Value = $"{a.Code:N0}" });
-            rows.Add(new() { Label = "Comentarios", Value = $"{a.Comment:N0}  ({ratio:0}%)", Hint = "Aproximado: líneas que empiezan con un comentario" });
+            rows.Add(new() { Label = Loc.T("metric.code"), Value = $"{a.Code:N0}" });
+            rows.Add(new() { Label = Loc.T("metric.comments"), Value = $"{a.Comment:N0}  ({ratio:0}%)", Hint = Loc.T("metric.comments.hint") });
         }
-        rows.Add(new() { Label = "En blanco", Value = $"{a.Blank:N0}" });
+        rows.Add(new() { Label = Loc.T("metric.blank"), Value = $"{a.Blank:N0}" });
         if (!Language.IsProse && a.Branches > 0)
-            rows.Add(new() { Label = "Decisiones", Value = $"{a.Branches:N0}", Hint = "Aproximado: if/for/while/case/catch/&&/||/?: (indicador de complejidad)", ValueBrush = a.Branches > 150 ? warn : Palette.Text });
+            rows.Add(new() { Label = Loc.T("metric.branches"), Value = $"{a.Branches:N0}", Hint = Loc.T("metric.branches.hint"), ValueBrush = a.Branches > 150 ? warn : Palette.Text });
         if (a.MaxDepth > 0)
-            rows.Add(new() { Label = "Anidación máx.", Value = a.MaxDepth.ToString(), Hint = "Profundidad máxima de llaves { }", ValueBrush = a.MaxDepth > 6 ? warn : Palette.Text });
+            rows.Add(new() { Label = Loc.T("metric.depth"), Value = a.MaxDepth.ToString(), Hint = Loc.T("metric.depth.hint"), ValueBrush = a.MaxDepth > 6 ? warn : Palette.Text });
         if (a.Outline.Count > 0)
-            rows.Add(new() { Label = "Símbolos", Value = $"{a.Outline.Count:N0}" });
-        rows.Add(new() { Label = "Línea más larga", Value = $"{a.LongestLine:N0} car. (L{a.LongestLineNo})", ValueBrush = a.LongestLine > 160 ? warn : Palette.Text });
-        rows.Add(new() { Label = "Caracteres", Value = $"{a.Chars:N0}" });
-        rows.Add(new() { Label = "Tamaño", Value = FileLoader.FormatSize(_size) });
-        rows.Add(new() { Label = "Indentación", Value = a.Indent, ValueBrush = a.Indent.StartsWith("Mixta") ? warn : Palette.Text });
-        rows.Add(new() { Label = "Fin de línea", Value = a.LineEnding, ValueBrush = a.LineEnding.StartsWith("Mixto") ? warn : Palette.Text });
-        rows.Add(new() { Label = "Codificación", Value = EncodingName });
-        rows.Add(new() { Label = "Espacios al final", Value = a.TrailingWhitespace ? "Sí" : "No", ValueBrush = a.TrailingWhitespace ? warn : Palette.Text });
-        rows.Add(new() { Label = "Modificado", Value = _modified.ToString("yyyy-MM-dd HH:mm") });
+            rows.Add(new() { Label = Loc.T("metric.symbols"), Value = $"{a.Outline.Count:N0}" });
+        rows.Add(new() { Label = Loc.T("metric.longest"), Value = Loc.F("metric.longest.value", a.LongestLine, a.LongestLineNo), ValueBrush = a.LongestLine > 160 ? warn : Palette.Text });
+        rows.Add(new() { Label = Loc.T("metric.chars"), Value = $"{a.Chars:N0}" });
+        rows.Add(new() { Label = Loc.T("metric.size"), Value = FileLoader.FormatSize(_size) });
+        rows.Add(new() { Label = Loc.T("metric.indent"), Value = a.Indent, ValueBrush = a.IndentMixed ? warn : Palette.Text });
+        rows.Add(new() { Label = Loc.T("metric.eol"), Value = a.LineEnding, ValueBrush = a.LineEndingMixed ? warn : Palette.Text });
+        rows.Add(new() { Label = Loc.T("metric.encoding"), Value = EncodingName });
+        rows.Add(new() { Label = Loc.T("metric.trailing"), Value = a.TrailingWhitespace ? Loc.T("common.yes") : Loc.T("common.no"), ValueBrush = a.TrailingWhitespace ? warn : Palette.Text });
+        rows.Add(new() { Label = Loc.T("metric.modified"), Value = _modified.ToString("yyyy-MM-dd HH:mm") });
         return rows;
     }
 
@@ -314,13 +314,13 @@ public sealed partial class OpenFileViewModel : TabViewModel, IDisposable
             _size = info.Length;
             IsDirty = false;
             ChangedOnDisk = false;
-            InfoText = $"{FileLoader.FormatSize(_size)} · guardado {_modified:HH:mm:ss}";
+            InfoText = Loc.F("file.saved", FileLoader.FormatSize(_size), _modified);
             await AnalyzeNowAsync();
             return true;
         }
         catch (Exception ex)
         {
-            await Dialogs.Message("No se pudo guardar", ex.Message);
+            await Dialogs.Message(Loc.T("file.saveError"), ex.Message);
             return false;
         }
     }
@@ -333,8 +333,8 @@ public sealed partial class OpenFileViewModel : TabViewModel, IDisposable
         if (!IsEditing) return true;
         if (IsDirty)
         {
-            var choice = await Dialogs.Choose("Cambios sin guardar",
-                $"{FileName} tiene cambios sin guardar.", "Guardar", "Descartar");
+            var choice = await Dialogs.Choose(Loc.T("common.unsaved"),
+                Loc.F("file.unsaved", FileName), Loc.T("common.save"), Loc.T("common.discard"));
             if (choice == 0) { if (!await SaveAsync()) return false; }
             else if (choice == 1) await LoadAsync(keepView: true);
             else return false;
@@ -348,7 +348,7 @@ public sealed partial class OpenFileViewModel : TabViewModel, IDisposable
     [RelayCommand]
     private async Task ReloadFromDiskAsync()
     {
-        if (IsDirty && !await Dialogs.Confirm("Recargar", "Se perderán los cambios sin guardar. ¿Recargar desde el disco?", "Recargar"))
+        if (IsDirty && !await Dialogs.Confirm(Loc.T("common.reload"), Loc.T("file.reload.text"), Loc.T("common.reload")))
             return;
         await LoadAsync(keepView: true);
     }

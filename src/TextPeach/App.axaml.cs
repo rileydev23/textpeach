@@ -14,9 +14,12 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        TabStrip.Install();
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var store = new ProjectStore();
+            // Before any view or view model exists: they read their texts once, when built.
+            Loc.Init(store.State.Language);
 #if !DEBUG
             // Debug runs stay anonymous so they never replace the location of the real build.
             PeachApps.Announce("TextPeach");
@@ -87,6 +90,7 @@ public partial class App : Application
                     }
                 }
                 else if (action.StartsWith("open:")) p.OpenFile(action[5..]);
+                else if (action.StartsWith("tree:")) p.RevealInTree(action[5..]);
                 else if (action == "about") vm.ShowAboutCommand.Execute(null);
                 else if (action.StartsWith("reveal:")) p.SelectedFile?.Reveal(int.Parse(action[7..]));
             }

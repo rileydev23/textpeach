@@ -15,9 +15,9 @@ public sealed class GroupHeaderRow : HomeRow
     public required ICommand ToggleCommand { get; init; }
     public required ICommand OpenAllCommand { get; init; }
 
-    public string Name => Group?.Name ?? "Sin grupo";
+    public string Name => Group?.Name ?? Loc.T("home.ungrouped");
     public string Chevron => IsCollapsed ? "▸" : "▾";
-    public string CountText => Count == 1 ? "1 proyecto" : $"{Count} proyectos";
+    public string CountText => Loc.Plural("common.projects", Count);
     public bool CanOpenAll => Count > 0;
 }
 

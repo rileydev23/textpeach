@@ -11,12 +11,12 @@ ViewModels ── MainWindowViewModel ─┬─ HomeViewModel (lista de proyecto
   │                                     ├─ SummaryViewModel (pestaña "Resumen")
   │                                     └─ OpenFileViewModel (una pestaña por archivo)
   └──► Services: ProjectStore · ProjectGrouping · ProjectScanner · FileLoader · FileAnalyzer · Languages
-                 · Highlighting · SingleInstance
+                 · Highlighting · SingleInstance · PeachApps · GitStatus · GitPeachLocator · Loc/Strings
 ```
 
 | Carpeta | Responsabilidad |
 |---|---|
-| `Services/` | `ProjectStore` (state.json), `ProjectScanner` (lista de archivos, tipo de proyecto), `FileLoader` (codificación, binarios, límites), `FileAnalyzer` (métricas, outline y marcadores por regex), `Languages` (extensión → lenguaje, color, comentarios), `Highlighting` (gramáticas TextMate + tema `peach-dark.json`). |
+| `Services/` | `ProjectStore` (state.json), `ProjectScanner` (lista de archivos, tipo de proyecto), `FileLoader` (codificación, binarios, límites), `FileAnalyzer` (métricas, outline y marcadores por regex), `Languages` (extensión → lenguaje, color, comentarios), `Highlighting` (gramáticas TextMate + tema `peach-dark.json`), `PeachApps` (carpeta compartida y `location.json`), `GitStatus` (estado de git de solo lectura), `GitPeachLocator` (dónde está GitPeach), `Loc` + `Strings` (textos en inglés y español). |
 | `ViewModels/` | Estado de pantalla. `ViewerSettings` (fuente, ajuste de línea, espacios) es compartido por todas las pestañas. |
 | `Views/` | `ProjectView` hospeda **un único** `TextEditor` (AvaloniaEdit) y le cambia el `TextDocument` según la pestaña; guarda/restaura cursor y scroll por archivo. Avalonia recicla la vista entre pestañas de proyecto, así que todo se reengancha en `DataContextChanged`. |
 | `Controls/` | `Palette`, `Folding` (plegado por llaves, indentación, etiquetas XML o títulos Markdown) y `DocumentRenderer` (Markdig → controles nativos para la vista renderizada). |
@@ -34,6 +34,28 @@ guarda lo encontrado en un grupo con el nombre de la carpeta. Los menús context
 escucha una *named pipe*; las siguientes envían sus rutas (absolutas) y terminan. `App` recibe esas rutas,
 llama a `MainWindowViewModel.OpenFromArgs` y trae la ventana al frente.
 
+## Estado de git (solo lectura)
+
+`ProjectViewModel.ScheduleGitRefresh` (con *debounce* de 600 ms) llama a `GitStatus.ReadAsync`, que busca la
+carpeta con `.git` subiendo desde el proyecto y ejecuta
+`git --no-optional-locks status --porcelain=v1 -z --branch --untracked-files=normal --ignored=traditional`
+(máx. 15 s). `GitStatus.Parse` (puro, testeado) produce un `GitSnapshot`: rama, ahead/behind, estado por
+archivo relativo al proyecto, carpetas enteras (sin seguimiento/ignoradas) y el cambio más fuerte dentro de
+cada carpeta. El snapshot se guarda en `ProjectViewModel.Git` (`GitDecorations`), que comparten todos los
+`FileNode` (también los que se cargan después al expandir), las filas del filtro y las pestañas
+(`TabViewModel.Change`). Se refresca al abrir el proyecto, con F5 y ante cambios del *watcher*, incluidos los de
+`.git` (que no refrescan el árbol). La rama de la barra de estado ejecuta `OpenInGitPeachCommand`:
+`GitPeachLocator.Open(repo)` o, si no está, el diálogo con el enlace a su repositorio. Ningún comando de git
+escribe nada.
+
+## Idiomas
+
+`Loc.Init(state.Language)` corre en `App` antes de crear cualquier vista: elige "en"/"es" según lo guardado o
+el idioma de Windows (`GetUserDefaultUILanguage`, porque la app usa globalización invariante). Las vistas leen
+sus textos al construirse (`{l:L clave}` es una `MarkupExtension` que devuelve `Loc.T(clave)`), así que
+cambiar de idioma se aplica al reiniciar. Todas las cadenas están en `Services/Strings.cs`; `LanguageTests`
+verifica que cada clave usada exista en ambos idiomas con los mismos marcadores.
+
 ## Flujo de un archivo
 
 1. `ProjectViewModel.OpenFile(rel)` crea o reutiliza un `OpenFileViewModel`.
@@ -47,9 +69,9 @@ llama a `MainWindowViewModel.OpenFromArgs` y trae la ventana al frente.
 
 ```
 dev.cmd                     compila Debug y ejecuta
-dotnet test TextPeach.sln   tests del analizador, decodificación, ranking y plegado
+dotnet test TextPeach.sln   tests del analizador, decodificación, ranking, plegado, git e idiomas
 build.cmd                   dist\TextPeach.exe portable (single-file, self-contained)
 ```
 
-En Debug, la variable `TEXTPEACH_DEBUG_ACTIONS="open:ruta/rel;search:texto;edit"` ejecuta acciones al iniciar
+En Debug, la variable `TEXTPEACH_DEBUG_ACTIONS="open:ruta/rel;tree:ruta/rel;search:texto;edit"` ejecuta acciones al iniciar
 (útil para capturas sin simular teclas).

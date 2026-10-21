@@ -44,6 +44,8 @@ public sealed class AppState
     public bool Maximized { get; set; }
     public double FontSize { get; set; } = 13;
     public bool WordWrap { get; set; }
+    /// <summary>Interface language: "en", "es" or null to follow Windows.</summary>
+    public string? Language { get; set; }
 }
 
 [JsonSerializable(typeof(AppState))]

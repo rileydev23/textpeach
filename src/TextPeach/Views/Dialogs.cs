@@ -41,14 +41,14 @@ public static class Dialogs
         HorizontalContentAlignment = HorizontalAlignment.Center,
     };
 
-    public static async Task<bool> Confirm(string title, string message, string ok = "Aceptar")
+    public static async Task<bool> Confirm(string title, string message, string? ok = null, string? cancelText = null)
     {
         var owner = Owner;
         if (owner is null) return false;
         var w = Make(title, 440);
         bool result = false;
-        var okBtn = Btn(ok, true);
-        var cancel = Btn("Cancelar");
+        var okBtn = Btn(ok ?? Loc.T("common.ok"), true);
+        var cancel = Btn(cancelText ?? Loc.T("common.cancel"));
         okBtn.Click += (_, _) => { result = true; w.Close(); };
         cancel.Click += (_, _) => w.Close();
         w.Content = new StackPanel
@@ -75,7 +75,7 @@ public static class Dialogs
         int result = -1;
         var a = Btn(first, true);
         var b = Btn(second);
-        var cancel = Btn("Cancelar");
+        var cancel = Btn(Loc.T("common.cancel"));
         a.Click += (_, _) => { result = 0; w.Close(); };
         b.Click += (_, _) => { result = 1; w.Close(); };
         cancel.Click += (_, _) => w.Close();
@@ -99,7 +99,7 @@ public static class Dialogs
         var owner = Owner;
         if (owner is null) return;
         var w = Make(title, 520);
-        var ok = Btn("Cerrar", true);
+        var ok = Btn(Loc.T("common.close"), true);
         ok.Click += (_, _) => w.Close();
         // Display-only text is a TextBlock: no caret, no focus border, nothing that looks editable.
         w.Content = new StackPanel
@@ -121,15 +121,16 @@ public static class Dialogs
     }
 
     /// <summary>F1 / "?": app identity first, then the keyboard shortcuts as a plain two-column table.</summary>
-    public static async Task About(string description, string dataPath, IEnumerable<(string Title, (string Gesture, string Description)[] Items)> shortcutGroups, Action openDataFolder)
+    public static async Task About(string description, string dataPath, IEnumerable<(string Title, (string Gesture, string Description)[] Items)> shortcutGroups,
+        ProjectStore store, Action openDataFolder)
     {
         var owner = Owner;
         if (owner is null) return;
-        var w = Make("Acerca de TextPeach", 520);
+        var w = Make(Loc.T("dlg.about.title"), 520);
         var version = typeof(Dialogs).Assembly.GetName().Version;
-        var close = Btn("Cerrar", true);
+        var close = Btn(Loc.T("common.close"), true);
         close.Click += (_, _) => w.Close();
-        var openData = Btn("Abrir carpeta de configuración");
+        var openData = Btn(Loc.T("dlg.about.openData"));
         openData.Click += (_, _) => openDataFolder();
 
         var header = new DockPanel { Margin = new Thickness(0, 0, 0, 4) };
@@ -146,7 +147,7 @@ public static class Dialogs
             Children =
             {
                 new TextBlock { Text = "TextPeach", FontSize = 18, FontWeight = FontWeight.SemiBold, Foreground = Palette.Text },
-                new TextBlock { Text = $"Versión {version?.ToString(3)}", Foreground = Palette.Dim, FontSize = 12 },
+                new TextBlock { Text = Loc.F("dlg.about.version", version?.ToString(3)), Foreground = Palette.Dim, FontSize = 12 },
                 new TextBlock { Text = description, Foreground = Palette.Text, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) },
             },
         });
@@ -177,7 +178,7 @@ public static class Dialogs
             {
                 header,
                 new Border { Height = 1, Background = Palette.Border },
-                new TextBlock { Text = "Atajos de teclado", FontSize = 14, FontWeight = FontWeight.SemiBold, Foreground = Palette.Text },
+                new TextBlock { Text = Loc.T("dlg.about.shortcuts"), FontSize = 14, FontWeight = FontWeight.SemiBold, Foreground = Palette.Text },
                 new ScrollViewer
                 {
                     MaxHeight = 380,
@@ -185,12 +186,45 @@ public static class Dialogs
                     Content = shortcuts,
                 },
                 new Border { Height = 1, Background = Palette.Border },
-                new TextBlock { Text = "Configuración guardada en: " + dataPath, Foreground = Palette.Dim, FontSize = 11, TextWrapping = TextWrapping.Wrap },
+                LanguagePicker(store),
+                new TextBlock { Text = Loc.F("dlg.about.dataPath", dataPath), Foreground = Palette.Dim, FontSize = 11, TextWrapping = TextWrapping.Wrap },
                 new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right, Children = { openData, close } },
             },
         };
         w.KeyDown += (_, e) => { if (e.Key is Key.Escape or Key.Enter) w.Close(); };
         await w.ShowDialog(owner);
+    }
+
+    /// <summary>
+    /// "Idioma: [English] [Español]": the joined view switch of the design system. The choice is saved at once and
+    /// applies on the next launch, since every screen reads its texts when it is built.
+    /// </summary>
+    private static Control LanguagePicker(ProjectStore store)
+    {
+        var note = new TextBlock { Text = Loc.T("dlg.about.languageNext"), Foreground = Palette.Amber, FontSize = 11, IsVisible = false, VerticalAlignment = VerticalAlignment.Center };
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+        row.Children.Add(new TextBlock { Text = Loc.T("dlg.about.language"), Foreground = Palette.Text, VerticalAlignment = VerticalAlignment.Center });
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal };
+        var chosen = store.State.Language ?? Loc.Current;
+        for (int i = 0; i < Loc.Languages.Length; i++)
+        {
+            var (code, name) = Loc.Languages[i];
+            var b = new Button { Content = name, Tag = code };
+            b.Classes.Add("mode");
+            b.Classes.Add(i == 0 ? "left" : "right");
+            if (code == chosen) b.Classes.Add("active");
+            b.Click += (_, _) =>
+            {
+                foreach (var other in buttons.Children.OfType<Button>()) other.Classes.Set("active", ReferenceEquals(other, b));
+                store.State.Language = code;
+                store.Save();
+                note.IsVisible = code != Loc.Current;
+            };
+            buttons.Children.Add(b);
+        }
+        row.Children.Add(buttons);
+        row.Children.Add(note);
+        return row;
     }
 
     public static async Task<string?> Prompt(string title, string label, string initial = "")
@@ -199,7 +233,7 @@ public static class Dialogs
         return r?[0];
     }
 
-    public static async Task<string[]?> Form(string title, (string Label, string Initial)[] fields, string ok = "Aceptar")
+    public static async Task<string[]?> Form(string title, (string Label, string Initial)[] fields, string? ok = null)
     {
         var owner = Owner;
         if (owner is null) return null;
@@ -214,8 +248,8 @@ public static class Dialogs
             boxes.Add(tb);
             panel.Children.Add(tb);
         }
-        var okBtn = Btn(ok, true);
-        var cancel = Btn("Cancelar");
+        var okBtn = Btn(ok ?? Loc.T("common.ok"), true);
+        var cancel = Btn(Loc.T("common.cancel"));
         void Accept() { result = boxes.Select(b => b.Text ?? "").ToArray(); w.Close(); }
         okBtn.Click += (_, _) => Accept();
         cancel.Click += (_, _) => w.Close();
@@ -245,7 +279,7 @@ public static class Dialogs
 
     /// <summary>Ctrl+Shift+O: fuzzy-pick a saved project.</summary>
     public static Task<ProjectEntry?> QuickOpen(IReadOnlyList<ProjectEntry> projects) =>
-        Pick("Abrir proyecto", "Buscar proyecto...", q => projects.Where(r => Fuzzy(r.Name + " " + r.Path, q)).ToList(),
+        Pick(Loc.T("dlg.openProject"), Loc.T("dlg.openProject.watermark"), q => projects.Where(r => Fuzzy(r.Name + " " + r.Path, q)).ToList(),
             r => r.Name, r => r.Path, null);
 
     /// <summary>Ctrl+P: fuzzy-pick a file of the project by name or path.</summary>

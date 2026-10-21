@@ -6,7 +6,15 @@
 
 <p align="center">
   Visor y analizador de código para Windows, <b>de solo lectura</b> por diseño.<br/>
-  Abre carpetas de proyecto, recórrelas, lee el código con colores, mira su estructura y sus métricas, y busca en todo el proyecto, sin miedo a cambiar nada por accidente.
+  Abre carpetas de proyecto, recórrelas, lee el código con colores, mira su estructura, sus métricas y su estado de git, y busca en todo el proyecto, sin miedo a cambiar nada por accidente.
+</p>
+
+<p align="center">
+  <b>Español</b> · <a href="README.en.md">English</a>
+</p>
+
+<p align="center">
+  <img src="docs/img/code.png" alt="Un proyecto abierto en TextPeach: árbol con estado de git, código con colores y panel de análisis" />
 </p>
 
 ---
@@ -14,6 +22,7 @@
 ## Índice
 
 - [¿Por qué TextPeach?](#por-qué-textpeach)
+- [Capturas](#capturas)
 - [Características](#características)
 - [Requisitos](#requisitos)
 - [Instalación](#instalación)
@@ -21,12 +30,14 @@
 - [Cómo funciona](#cómo-funciona)
   - [Proyectos y grupos](#proyectos-y-grupos)
   - [La pestaña de un proyecto](#la-pestaña-de-un-proyecto)
+  - [Estado de git (solo lectura)](#estado-de-git-solo-lectura)
   - [Vista renderizada y vista de código](#vista-renderizada-y-vista-de-código)
   - [Panel de análisis](#panel-de-análisis)
   - [Resumen del proyecto](#resumen-del-proyecto)
   - [Búsqueda](#búsqueda)
   - [Edición (opcional)](#edición-opcional)
   - [Cambios en el disco](#cambios-en-el-disco)
+  - [Idioma](#idioma)
 - [Atajos de teclado](#atajos-de-teclado)
 - [Línea de comandos e integración](#línea-de-comandos-e-integración)
 - [Lenguajes soportados](#lenguajes-soportados)
@@ -41,22 +52,45 @@
 
 ## ¿Por qué TextPeach?
 
-Los editores de código están pensados para **escribir**. Cuando lo que quieres es **revisar** un proyecto
-(entender un repositorio nuevo, hacer una revisión, leer documentación, buscar dónde se usa algo) un editor
-te deja el cursor listo para teclear, te avisa de cambios sin guardar y llena la pantalla de herramientas
-que no necesitas.
+TextPeach nació para **trabajar con agentes de IA**. Le pides los cambios a tu app de IA preferida y
+dejas TextPeach abierto al lado para **ver en tiempo real** qué archivos toca, qué cambió según git y cómo
+queda el código, sin un editor que te tiente a meter la mano ni riesgo de pisar lo que el agente está
+escribiendo.
+
+También sirve para cualquier momento en que lo que quieres es **revisar** y no **escribir**: entender un
+repositorio nuevo, hacer una revisión, leer documentación o buscar dónde se usa algo. Los editores de código
+están pensados para escribir: te dejan el cursor listo para teclear, avisan de cambios sin guardar y llenan la
+pantalla de herramientas que no necesitas.
 
 TextPeach invierte la prioridad:
 
 - **Todo se abre en solo lectura.** Teclear no cambia nada. Para editar un archivo hay que pulsar un botón
   explícito (**✎ Editar**) y guardar a mano.
+- **Se actualiza solo.** Cuando un archivo cambia en el disco, la vista se recarga conservando el cursor y el
+  scroll; el árbol y el estado de git también se actualizan.
+- **Muestra git, pero no lo toca.** La rama, los archivos modificados, nuevos o en conflicto se ven como en
+  la mayoría de los editores. Las acciones de git quedan para [GitPeach](https://github.com/rileydev23/gitpeach).
 - **Lee como un lector.** Markdown y texto se abren *renderizados* (títulos, tablas, listas, código) y el
   fuente queda a un clic.
 - **Te cuenta cómo es cada archivo:** líneas de código y comentarios, complejidad aproximada, anidación,
   estructura (clases, métodos, títulos…), TODO/FIXME, codificación, indentación y fin de línea.
 - **Trabaja con muchos proyectos a la vez,** en pestañas y organizados en grupos.
 
-Es un único `.exe` portable, sin instalador, sin cuentas y sin conexión a internet.
+Es un único `.exe` portable, sin instalador, sin cuentas y sin conexión a internet. En español y en inglés.
+
+## Capturas
+
+| | |
+|---|---|
+| ![Lista de proyectos con grupos y favoritos](docs/img/home.png) | ![README renderizado con su estructura navegable](docs/img/markdown.png) |
+| **Proyectos:** grupos, favoritos y tipo de cada proyecto. | **Vista renderizada:** Markdown con títulos, listas e imágenes; estructura a la derecha. |
+| ![Búsqueda en todo el proyecto](docs/img/search.png) | ![Resumen del proyecto](docs/img/summary.png) |
+| **Búsqueda:** en vivo, con mayúsculas, palabra completa, regex y *globs*. | **Resumen:** totales, lenguajes, archivos más extensos y marcadores. |
+
+<p align="center">
+  <img src="docs/img/about.png" width="420" alt="Acerca de TextPeach, con los atajos de teclado y el selector de idioma" /><br/>
+  <sub><b>Acerca de (F1):</b> versión, atajos de teclado, idioma y carpeta de configuración.</sub>
+</p>
 
 ## Características
 
@@ -64,6 +98,7 @@ Es un único `.exe` portable, sin instalador, sin cuentas y sin conexión a inte
 |---|---|
 | **Proyectos** | Lista persistente de carpetas, favoritos ★, grupos plegables, filtro difuso, escaneo de carpetas (lo encontrado se guarda como un grupo), arrastrar y soltar, varias pestañas abiertas que se restauran al reiniciar. |
 | **Explorador** | Árbol de archivos perezoso (ignora `node_modules`, `bin`, `obj`, `.git`, `dist`…), filtro rápido por nombre, "Ir a archivo" (Ctrl+P) con ranking inteligente. |
+| **Estado de git** | Rama actual (con commits por enviar o traer) en la barra de estado; archivos modificados, nuevos, agregados, renombrados, en conflicto e ignorados con su color y su letra, también en las carpetas y en las pestañas. Solo lectura: un clic en la rama abre el repositorio en GitPeach. |
 | **Visor de código** | Resaltado TextMate (las mismas gramáticas que muchos editores modernos), números de línea, plegado de bloques, línea actual, zoom, ajuste de línea, mostrar espacios/tabs/fines de línea, buscar en el archivo (Ctrl+F), ir a línea (Ctrl+G). |
 | **Vista renderizada** | Markdown (títulos, listas, tareas, tablas, citas, bloques de código, imágenes locales, enlaces) y texto plano formateado. Conmutador **Renderizada \| Código**. |
 | **Análisis por archivo** | Métricas con avisos en ámbar, estructura (outline) navegable, marcadores TODO/FIXME/HACK/BUG/NOTE. |
@@ -71,11 +106,14 @@ Es un único `.exe` portable, sin instalador, sin cuentas y sin conexión a inte
 | **Búsqueda global** | En vivo, con mayúsculas, palabra completa, expresión regular y filtro por *glob* (`*.cs, src/**`); resultados agrupados por archivo con la coincidencia resaltada. |
 | **Imágenes** | Vista previa de PNG, JPG, GIF, BMP, ICO y WebP con dimensiones. |
 | **Edición opcional** | Por archivo, explícita, con aviso visible; guarda con la misma codificación y BOM originales. |
-| **Integración** | Rutas por línea de comandos, instancia única (otras apps pueden pedirle abrir carpetas y archivos), "Abrir con la aplicación predeterminada". |
+| **Idiomas** | Español e inglés; sigue el idioma de Windows o el que elijas en **Acerca de**. |
+| **Integración** | Rutas por línea de comandos, instancia única (otras apps pueden pedirle abrir carpetas y archivos), "Abrir con la aplicación predeterminada", enlace con GitPeach. |
 
 ## Requisitos
 
 - **Para usarlo:** Windows 10 u 11 de 64 bits. No necesita .NET instalado (el ejecutable es autocontenido).
+- **Para ver el estado de git:** [Git para Windows](https://git-scm.com/download/win) en el `PATH` (o en su
+  carpeta de instalación habitual). Sin git, TextPeach funciona igual, solo que sin esa información.
 - **Para compilarlo:** [SDK de .NET 10](https://dotnet.microsoft.com/download).
 
 ## Instalación
@@ -83,10 +121,12 @@ Es un único `.exe` portable, sin instalador, sin cuentas y sin conexión a inte
 1. Descarga `TextPeach.exe` desde la sección *Releases* del repositorio (o compílalo, ver
    [Compilar desde el código](#compilar-desde-el-código)).
 2. Ponlo en la carpeta que quieras y ejecútalo. No hay instalador.
-3. *(Opcional)* Para que otras apps lo encuentren, ponlo en `%LOCALAPPDATA%\Programs\TextPeach\`, en
-   `%ProgramFiles%\TextPeach\`, junto a la app que lo invoca o en una carpeta del `PATH`.
-4. *(Opcional)* **Modo portable:** crea un archivo vacío `portable.txt` junto al `.exe` y los datos se
+3. *(Opcional)* **Modo portable:** crea un archivo vacío `portable.txt` junto al `.exe` y los datos se
    guardarán en `.\data\` en lugar de en tu perfil.
+
+Cada vez que se abre, TextPeach anota dónde está en `%APPDATA%\peachapps\TextPeach\location.json`. Así las
+otras apps de la familia (como GitPeach) lo encuentran aunque lo muevas de carpeta: basta con abrirlo una vez
+desde su nueva ubicación.
 
 ## Primeros pasos
 
@@ -126,21 +166,51 @@ Java, etc.) y lo muestra en verde junto al nombre.
 │ Archivos     │ Resumen │ archivo-a ✕ │ archivo-b ✕          │ Análisis             │
 │  / Buscar    │ ruta/archivo.ext  [Lenguaje]  [Renderizada|Código] [✎ Editar] [⋯] │
 │              │                                              │ Estructura (n)       │
-│ árbol o      │   código con colores, plegado y números      │ Marcadores (n)       │
-│ resultados   │   de línea · o documento renderizado         │                      │
+│ árbol con    │   código con colores, plegado y números      │ Marcadores (n)       │
+│ estado git M │   de línea · o documento renderizado         │                      │
 ├──────────────┴─────────────────────────────────────────────┴──────────────────────┤
-│ aviso                       Ln 12, Col 5 · 4 espacios · LF · UTF-8 · C# · Solo lectura │
+│ ⑂ main ↑1  3 cambios   aviso      Ln 12, Col 5 · 4 espacios · LF · UTF-8 · C# · Solo lectura │
 └────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 - **Panel izquierdo:** conmutador **Archivos / Buscar**. En *Archivos*, el filtro de arriba cambia el árbol
   por una lista plana de coincidencias (↓ para entrar en la lista, Enter para abrir, Esc para limpiar).
 - **Centro:** pestañas de archivos abiertos (la primera, **Resumen**, es fija). Menú contextual: cerrar los
-  demás o todos. Al cambiar de pestaña se conservan el cursor y el scroll de cada archivo.
+  demás o todos. Al cambiar de pestaña se conservan el cursor y el scroll de cada archivo. Con muchas
+  pestañas, la rueda del mouse las desplaza de lado y una barra fina aparece debajo, sin taparlas.
 - **Menú ⋯ del archivo:** copiar ruta completa o relativa, revelar en el árbol, abrir con la aplicación
   predeterminada, recargar desde el disco.
-- **Barra de estado:** posición del cursor, indentación, fin de línea, codificación, lenguaje y modo
-  (*Solo lectura* / *Editando*); ajuste de línea, espacios invisibles (¶) y tamaño de letra.
+- **Barra de estado:** rama de git a la izquierda; a la derecha, posición del cursor, indentación, fin de
+  línea, codificación, lenguaje y modo (*Solo lectura* / *Editando*); ajuste de línea, espacios invisibles
+  (¶) y tamaño de letra.
+
+### Estado de git (solo lectura)
+
+Si el proyecto está dentro de un repositorio git, TextPeach muestra su estado como lo hacen la mayoría de los
+editores, **sin ejecutar ninguna acción de git**: no hace stage, commit, checkout, pull ni push, y ni
+siquiera refresca el índice (usa `git --no-optional-locks status`).
+
+| Estado | Color | Letra |
+|---|---|---|
+| Modificado | ámbar | `M` |
+| Sin seguimiento (nuevo) | verde | `U` |
+| Agregado al índice | verde | `A` |
+| Renombrado | turquesa | `R` |
+| Eliminado | rojo | `D` |
+| En conflicto | rosa | `!` |
+| Ignorado | gris | — |
+
+- El **nombre** del archivo toma el color de su estado en el árbol, en la lista del filtro y en su pestaña;
+  la **letra** aparece a la derecha.
+- Las **carpetas** muestran un punto (•) con el color del cambio más importante que contienen, así ves dónde
+  hubo cambios aunque estén plegadas.
+- La **rama** aparece abajo a la izquierda, con `↑n` / `↓n` si hay commits por enviar o por traer, y el
+  número de archivos con cambios. Su descripción emergente da el detalle. Con un *HEAD* separado se muestra el
+  commit.
+- Un **clic en la rama abre el repositorio en GitPeach**, el cliente de git de la familia Peach. Si GitPeach
+  no está en el equipo, TextPeach lo explica y ofrece ir a su repositorio para descargarlo.
+- El estado se actualiza solo cuando algo cambia en la carpeta o dentro de `.git` (un commit o un cambio de
+  rama hecho desde otra app), y con **F5**.
 
 ### Vista renderizada y vista de código
 
@@ -213,9 +283,16 @@ aplicación con cambios pendientes siempre pide confirmación.
 
 ### Cambios en el disco
 
-Cada proyecto vigila su carpeta. Si un archivo abierto cambia fuera de TextPeach, se recarga solo
-conservando el cursor y el scroll; si lo estabas editando, aparece un aviso con **Recargar** en lugar de
-pisar tu trabajo. El árbol y el resumen se actualizan cuando se crean, borran o renombran archivos.
+Cada proyecto vigila su carpeta. Si un archivo abierto cambia fuera de TextPeach (por ejemplo, porque lo
+editó tu agente de IA), se recarga solo conservando el cursor y el scroll; si lo estabas editando, aparece un
+aviso con **Recargar** en lugar de pisar tu trabajo. El árbol, el resumen y el estado de git se actualizan
+cuando se crean, borran o renombran archivos.
+
+### Idioma
+
+La interfaz está en **español** e **inglés**. Por defecto sigue el idioma de Windows (español si Windows está
+en español; inglés en cualquier otro caso). Para elegirlo a mano, abre **Acerca de** (F1) y usa el selector
+**Idioma**; el cambio se aplica la próxima vez que abras TextPeach.
 
 ## Atajos de teclado
 
@@ -226,7 +303,7 @@ pisar tu trabajo. El árbol y el resumen se actualizan cuando se crean, borran o
 | `Ctrl+Tab` / `Ctrl+Shift+Tab` | Pestaña siguiente / anterior |
 | `Ctrl+1 … Ctrl+9` | Ir a la pestaña N (1 = Proyectos) |
 | `Ctrl+W` / `Ctrl+F4` | Cerrar el archivo actual (o el proyecto si no hay archivos) |
-| `F1` | Acerca de y atajos de teclado |
+| `F1` | Acerca de, atajos de teclado e idioma |
 | `Ctrl+Shift+F` | Buscar en todo el proyecto |
 | `Ctrl+Shift+E` | Filtrar archivos del árbol |
 | `Ctrl+F`, `F3`, `Shift+F3` | Buscar en el archivo actual |
@@ -236,7 +313,7 @@ pisar tu trabajo. El árbol y el resumen se actualizan cuando se crean, borran o
 | `Ctrl+S` | Guardar (solo en modo edición) |
 | `Ctrl +`, `Ctrl −`, `Ctrl+0` | Zoom del texto |
 | `Alt+Z` | Ajuste de línea |
-| `F5` | Refrescar árbol, archivos y resumen |
+| `F5` | Refrescar árbol, archivos, resumen y estado de git |
 | `Enter` / `Supr` en la lista de proyectos | Abrir / quitar de la lista |
 
 ## Línea de comandos e integración
@@ -251,9 +328,10 @@ TextPeach.exe [carpeta] [archivo] ...
 - **Instancia única:** si TextPeach ya está abierto, la nueva ejecución le entrega las rutas por una
   *named pipe* local (solo del usuario actual), trae la ventana al frente y termina. Así otras aplicaciones
   pueden pedirle que abra un repositorio o un archivo sin duplicar ventanas.
-
-Para que otra app lo encuentre, basta con ubicar `TextPeach.exe` en una de las rutas indicadas en
-[Instalación](#instalación).
+- **GitPeach:** el botón de la rama ejecuta `GitPeach.exe <repositorio>`. GitPeach se busca primero donde él
+  mismo anotó que está (`%APPDATA%\peachapps\GitPeach\location.json`), y si no, junto a TextPeach, en una
+  carpeta hermana `GitPeach`, en `%LOCALAPPDATA%\Programs\GitPeach`, en `%ProgramFiles%\GitPeach` y en el
+  `PATH`.
 
 ## Lenguajes soportados
 
@@ -275,9 +353,12 @@ comentarios) y, si quieres estructura, `FileAnalyzer.cs`.
 
 - TextPeach **no se conecta a internet**, no tiene telemetría ni cuentas. Solo abre enlaces web cuando tú
   haces clic en ellos (con tu navegador predeterminado).
-- Guarda su estado en `%APPDATA%\TextPeach\state.json` (o en `.\data\` junto al exe con `portable.txt`):
-  lista de proyectos y grupos, pestañas y archivos abiertos, tamaño/posición de la ventana y preferencias del
-  visor. La ruta exacta aparece en **Acerca de** (F1).
+- Guarda su estado en `%APPDATA%\peachapps\TextPeach\state.json` (o en `.\data\` junto al exe con
+  `portable.txt`): lista de proyectos y grupos, pestañas y archivos abiertos, tamaño/posición de la ventana,
+  idioma y preferencias del visor. La ruta exacta aparece en **Acerca de** (F1).
+- `%APPDATA%\peachapps\TextPeach\location.json` solo dice dónde está el ejecutable, para que las otras apps
+  Peach lo encuentren.
+- Para el estado de git solo **lee** el repositorio con tu instalación de git; nunca lo modifica.
 - Nunca modifica archivos salvo que actives la edición y pulses **Guardar**.
 
 ## Límites conocidos
@@ -289,9 +370,11 @@ comentarios) y, si quieres estructura, `FileAnalyzer.cs`.
 | Archivos listados por proyecto | 60 000 | El resumen lo indica con "+". |
 | Coincidencias de búsqueda | 3 000 (200 por archivo) | Se indica "(limitado)". |
 | Análisis del resumen | archivos ≤ 2 MB | Los más grandes se cuentan pero no se leen. |
+| `git status` | 15 s | Si tarda más (repositorios enormes), no se muestra el estado. |
 
 Otros: la estructura y las métricas son heurísticas (regex), no un análisis semántico; el plegado de
-llaves no entiende todos los literales de cadena de todos los lenguajes; solo se publica para Windows x64
+llaves no entiende todos los literales de cadena de todos los lenguajes; los archivos eliminados no aparecen
+en el árbol (no existen en el disco); el cambio de idioma requiere reiniciar; solo se publica para Windows x64
 (Avalonia es multiplataforma, así que portarlo es posible).
 
 ## Compilar desde el código
@@ -309,7 +392,8 @@ build.cmd                     :: genera dist\TextPeach.exe (single-file, autocon
 reflexión). La primera compilación descarga los paquetes NuGet.
 
 **Depuración sin teclado:** en Debug, la variable `TEXTPEACH_DEBUG_ACTIONS` ejecuta acciones al iniciar,
-por ejemplo `open:docs/DISENO.md;reveal:80;search:Palette;edit;about`. Útil para capturas de pantalla.
+por ejemplo `open:docs/DISENO.md;tree:docs/DISENO.md;reveal:80;search:Palette;edit;about`. Útil para
+capturas de pantalla.
 
 ## Estructura del repositorio
 
@@ -318,15 +402,16 @@ TextPeach/
 ├── build.cmd · dev.cmd · TextPeach.sln
 ├── docs/
 │   ├── ARQUITECTURA.md      capas, flujo de un archivo, decisiones técnicas
-│   └── DISENO.md            sistema de diseño (colores, tipografía, componentes, patrones)
+│   ├── DISENO.md            sistema de diseño (colores, tipografía, componentes, patrones)
+│   └── img/                 capturas (en español; en inglés en img/en/)
 ├── src/TextPeach/
 │   ├── Assets/              iconos y tema de sintaxis peach-dark.json
 │   ├── Controls/            Palette, plegado, renderizador de documentos
 │   ├── Services/            estado, escáner, cargador de archivos, analizador, lenguajes, grupos,
-│   │                        resaltado, instancia única
+│   │                        resaltado, instancia única, estado de git, idiomas (Loc + Strings)
 │   ├── ViewModels/          MVVM (CommunityToolkit.Mvvm)
 │   └── Views/               XAML de Avalonia y diálogos
-└── tests/TextPeach.Tests/   xUnit: analizador, decodificación, ranking, plegado, grupos
+└── tests/TextPeach.Tests/   xUnit: analizador, decodificación, ranking, plegado, grupos, git, idiomas
 ```
 
 Más detalle en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md). Las reglas visuales están en
@@ -343,16 +428,31 @@ Más detalle en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md). Las reglas visuale
 
 Convenciones:
 
-- **Textos de la interfaz en español neutro** (tuteo, mayúscula solo al inicio); **código, nombres y
-  comentarios en inglés**.
+- **Todo texto visible va en `Services/Strings.cs`** con su versión en inglés y en español (español
+  neutro, tuteo, mayúscula solo al inicio). En XAML se usa `{l:L clave}` y en C# `Loc.T("clave")`. Un test
+  comprueba que cada clave usada exista en los dos idiomas. **Código, nombres y comentarios en inglés**.
 - Respeta [docs/DISENO.md](docs/DISENO.md): solo colores de la paleta, un botón principal por zona, lo
   que solo se lee nunca va en un campo editable, la interfaz no menciona aplicaciones de terceros.
 - Todo lo que toque disco va fuera del hilo de la interfaz.
-- Mantén TextPeach de solo lectura por defecto: cualquier acción que escriba en disco debe ser explícita.
+- Mantén TextPeach de solo lectura por defecto: cualquier acción que escriba en disco debe ser explícita, y
+  git solo se lee.
 
 ## Licencia y créditos
 
-TextPeach se distribuye bajo la licencia **MIT** (ver [LICENSE](LICENSE)).
+TextPeach usa la **[Licencia TextPeach](LICENSE)** (código visible, no es una licencia de código abierto
+estándar). En resumen:
+
+- **Usarlo tal cual es libre para todos**, también para empresas y con fines comerciales, siempre que no se
+  modifique, se dejen los créditos y se actualice a las versiones oficiales.
+- **Hacer tu propia versión** (personal, sin venderla) está permitido si se dan créditos visibles
+  ("Basado en TextPeach de rileydev23"), se mantiene esta licencia y no se usa el nombre ni el logo de
+  TextPeach como propios.
+- **Versiones corporativas** (una empresa u organización que modifica, adapta o rebautiza TextPeach, incluso
+  para uso interno) o **versiones de pago** requieren ponerse en contacto antes: llevan un acuerdo con
+  regalías o un monto fijo.
+
+La idea es simple: todos pueden usarlo, pero nadie debería apropiarse gratis del trabajo de otros. El texto
+que vale es el de [LICENSE](LICENSE).
 
 Construido con:
 
@@ -361,3 +461,7 @@ Construido con:
 - [TextMateSharp](https://github.com/danipen/TextMateSharp) y sus gramáticas (MIT; gramáticas con sus propias licencias, mayormente MIT)
 - [Markdig](https://github.com/xoofx/markdig) (BSD-2-Clause)
 - [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet) (MIT)
+
+---
+
+<p align="center"><i>Deja que la IA escriba el código; tú mira, revisa y supervisa sin miedo.</i></p>

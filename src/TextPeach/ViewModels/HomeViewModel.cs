@@ -31,7 +31,7 @@ public partial class HomeViewModel : TabViewModel
     {
         _store = store;
         _open = open;
-        Title = "Proyectos";
+        Title = Loc.T("main.home");
         Reload();
         _ = RefreshKindsAsync();
     }
@@ -124,8 +124,8 @@ public partial class HomeViewModel : TabViewModel
         var existing = projects.Where(p => Directory.Exists(p.Path)).ToList();
         foreach (var p in existing) _open(p);
         Status = existing.Count == projects.Count
-            ? $"Abiertos {Plural(existing.Count)}"
-            : $"Abiertos {existing.Count} de {projects.Count} (algunas carpetas ya no existen)";
+            ? Loc.F("home.opened", Plural(existing.Count))
+            : Loc.F("home.openedSome", existing.Count, projects.Count);
     }
 
     [RelayCommand]
@@ -133,7 +133,7 @@ public partial class HomeViewModel : TabViewModel
 
     private async Task MoveToNewGroup(IReadOnlyList<ProjectEntry> projects)
     {
-        var name = await Dialogs.Prompt("Nuevo grupo", "Nombre del grupo", ProjectGrouping.UniqueName(State, "Grupo"));
+        var name = await Dialogs.Prompt(Loc.T("home.newGroup.title"), Loc.T("home.newGroup.label"), ProjectGrouping.UniqueName(State, Loc.T("home.group.default")));
         if (string.IsNullOrWhiteSpace(name)) return;
         var group = ProjectGrouping.Ensure(State, name);
         group.Collapsed = false;
@@ -147,17 +147,17 @@ public partial class HomeViewModel : TabViewModel
         Reload();
         if (projects.Count > 0)
             Status = group is null
-                ? $"{Plural(projects.Count)} sin grupo"
-                : $"{Plural(projects.Count)} en el grupo \"{group.Name}\"";
+                ? Loc.F("home.movedOut", Plural(projects.Count))
+                : Loc.F("home.movedTo", Plural(projects.Count), group.Name);
     }
 
     private async Task RenameGroup(ProjectGroup group)
     {
-        var name = await Dialogs.Prompt("Renombrar grupo", "Nuevo nombre", group.Name);
+        var name = await Dialogs.Prompt(Loc.T("home.renameGroup.title"), Loc.T("home.renameGroup.label"), group.Name);
         if (string.IsNullOrWhiteSpace(name) || name.Trim() == group.Name) return;
         if (!ProjectGrouping.Rename(State, group, name))
         {
-            await Dialogs.Message("Renombrar grupo", $"Ya existe un grupo llamado \"{name.Trim()}\".");
+            await Dialogs.Message(Loc.T("home.renameGroup.title"), Loc.F("home.renameGroup.exists", name.Trim()));
             return;
         }
         _store.Save();
@@ -168,15 +168,15 @@ public partial class HomeViewModel : TabViewModel
     {
         var count = ProjectGrouping.Members(State, group).Count();
         var message = removeProjects
-            ? $"Se quitará el grupo \"{group.Name}\" y sus {Plural(count)} de la lista.\nNo se borra nada del disco."
-            : $"Se eliminará el grupo \"{group.Name}\". Sus {Plural(count)} pasarán a \"Sin grupo\".";
-        if (count > 0 && !await Dialogs.Confirm("Eliminar grupo", message, "Eliminar")) return;
+            ? Loc.F("home.deleteGroup.withProjects", group.Name, Plural(count))
+            : Loc.F("home.deleteGroup.keepProjects", group.Name, Plural(count));
+        if (count > 0 && !await Dialogs.Confirm(Loc.T("home.deleteGroup.title"), message, Loc.T("home.deleteGroup.ok"))) return;
         ProjectGrouping.Delete(State, group, removeProjects);
         _store.Save();
         Reload();
     }
 
-    private static string Plural(int n) => n == 1 ? "1 proyecto" : $"{n} proyectos";
+    private static string Plural(int n) => Loc.Plural("common.projects", n);
 
     // ---------------------------------------------------------------- menus
 
@@ -186,15 +186,15 @@ public partial class HomeViewModel : TabViewModel
         var projects = ProjectGrouping.Members(State, g).ToList();
         var items = new List<MenuAction>
         {
-            MenuAction.Sync($"Abrir todos ({projects.Count})", () => OpenAll(projects)),
-            MenuAction.Sync(header.IsCollapsed ? "Expandir" : "Contraer", () => ToggleGroup(g)),
+            MenuAction.Sync(Loc.F("home.menu.openAll", projects.Count), () => OpenAll(projects)),
+            MenuAction.Sync(header.IsCollapsed ? Loc.T("home.menu.expand") : Loc.T("home.menu.collapse"), () => ToggleGroup(g)),
         };
         if (g is not null)
         {
             items.Add(MenuAction.Separator);
-            items.Add(new MenuAction("Renombrar grupo…", () => RenameGroup(g)));
-            items.Add(new MenuAction("Eliminar grupo (los proyectos quedan sin grupo)…", () => DeleteGroup(g, removeProjects: false)));
-            items.Add(new MenuAction("Quitar el grupo y sus proyectos de la lista…", () => DeleteGroup(g, removeProjects: true)));
+            items.Add(new MenuAction(Loc.T("home.menu.renameGroup"), () => RenameGroup(g)));
+            items.Add(new MenuAction(Loc.T("home.menu.deleteGroup"), () => DeleteGroup(g, removeProjects: false)));
+            items.Add(new MenuAction(Loc.T("home.menu.removeGroup"), () => DeleteGroup(g, removeProjects: true)));
         }
         return MenuList.Clean(items);
     }
@@ -206,13 +206,13 @@ public partial class HomeViewModel : TabViewModel
         var items = new List<MenuAction>
         {
             single is not null
-                ? MenuAction.Sync("Abrir", () => Open(single))
-                : MenuAction.Sync($"Abrir los {projects.Count}", () => OpenAll(projects)),
+                ? MenuAction.Sync(Loc.T("common.open"), () => Open(single))
+                : MenuAction.Sync(Loc.F("home.menu.openN", projects.Count), () => OpenAll(projects)),
         };
         if (single is not null)
         {
-            items.Add(MenuAction.Sync("Favorito (alternar)", () => ToggleFavorite(single)));
-            items.Add(new MenuAction("Renombrar en la lista…", () => RenameAsync(single)));
+            items.Add(MenuAction.Sync(Loc.T("home.menu.favorite"), () => ToggleFavorite(single)));
+            items.Add(new MenuAction(Loc.T("home.menu.rename"), () => RenameAsync(single)));
         }
 
         items.Add(MenuAction.Separator);
@@ -224,18 +224,18 @@ public partial class HomeViewModel : TabViewModel
             targets.Add(MenuAction.Sync(group.Name, () => MoveTo(projects, group)));
         }
         if (targets.Count > 0) targets.Add(MenuAction.Separator);
-        targets.Add(new MenuAction("Nuevo grupo…", () => MoveToNewGroup(projects)));
-        items.Add(MenuAction.Submenu(projects.Count == 1 ? "Mover a grupo" : $"Mover los {projects.Count} a grupo", targets));
+        targets.Add(new MenuAction(Loc.T("home.menu.newGroup"), () => MoveToNewGroup(projects)));
+        items.Add(MenuAction.Submenu(projects.Count == 1 ? Loc.T("home.menu.moveTo") : Loc.F("home.menu.moveNTo", projects.Count), targets));
         if (projects.Any(p => ProjectGrouping.Find(State, p.Group) is not null))
-            items.Add(MenuAction.Sync("Quitar del grupo", () => MoveTo(projects, null)));
+            items.Add(MenuAction.Sync(Loc.T("home.menu.ungroup"), () => MoveTo(projects, null)));
 
         if (single is not null)
         {
             items.Add(MenuAction.Separator);
-            items.Add(MenuAction.Sync("Abrir con la aplicación predeterminada", () => OpenWithDefault(single)));
+            items.Add(MenuAction.Sync(Loc.T("common.openDefault"), () => OpenWithDefault(single)));
         }
         items.Add(MenuAction.Separator);
-        items.Add(MenuAction.Sync(single is not null ? "Quitar de la lista" : $"Quitar los {projects.Count} de la lista", () => RemoveMany(projects)));
+        items.Add(MenuAction.Sync(single is not null ? Loc.T("home.menu.remove") : Loc.F("home.menu.removeN", projects.Count), () => RemoveMany(projects)));
         return MenuList.Clean(items);
     }
 
@@ -248,7 +248,7 @@ public partial class HomeViewModel : TabViewModel
         if (entry is null) return;
         if (!Directory.Exists(entry.Path))
         {
-            Status = $"La carpeta ya no existe: {entry.Path}";
+            Status = Loc.F("home.folderGone", entry.Path);
             return;
         }
         _open(entry);
@@ -257,7 +257,7 @@ public partial class HomeViewModel : TabViewModel
     [RelayCommand]
     private async Task AddAsync()
     {
-        var dir = await Dialogs.PickFolder("Seleccionar carpeta del proyecto");
+        var dir = await Dialogs.PickFolder(Loc.T("home.pickFolder"));
         if (dir is null) return;
         AddPath(dir, open: true);
     }
@@ -266,13 +266,13 @@ public partial class HomeViewModel : TabViewModel
     {
         if (!Directory.Exists(dir))
         {
-            Status = $"No es una carpeta: {dir}";
+            Status = Loc.F("home.notFolder", dir);
             return;
         }
         var entry = _store.Add(dir);
         Reload();
         SelectedRow = Rows.OfType<ProjectRow>().FirstOrDefault(r => r.Entry == entry);
-        Status = $"Agregado: {entry.Name}";
+        Status = Loc.F("home.added", entry.Name);
         _ = RefreshKindsAsync();
         if (open) _open(entry);
     }
@@ -291,7 +291,7 @@ public partial class HomeViewModel : TabViewModel
     [RelayCommand]
     private async Task ScanAsync()
     {
-        var dir = await Dialogs.PickFolder("Carpeta a escanear");
+        var dir = await Dialogs.PickFolder(Loc.T("home.pickScan"));
         if (dir is not null) await ImportFolderAsGroupAsync(dir);
     }
 
@@ -302,13 +302,13 @@ public partial class HomeViewModel : TabViewModel
     public async Task ImportFolderAsGroupAsync(string dir)
     {
         Busy = true;
-        Status = "Escaneando...";
+        Status = Loc.T("home.scanning");
         try
         {
             var found = await Task.Run(() => ProjectScanner.FindProjects(dir, 4));
             if (found.Count == 0)
             {
-                Status = $"No se encontraron proyectos en {dir}";
+                Status = Loc.F("home.noneFound", dir);
                 return;
             }
             var name = Path.GetFileName(dir.TrimEnd('\\', '/'));
@@ -326,8 +326,8 @@ public partial class HomeViewModel : TabViewModel
             _store.Save();
             Reload();
             _ = RefreshKindsAsync();
-            Status = $"Grupo \"{group.Name}\": {Plural(found.Count)} encontrados, {added} nuevos" +
-                     (kept > 0 ? $", {kept} ya estaban en otro grupo" : "") + ".";
+            Status = Loc.F("home.scanned", group.Name, Plural(found.Count), added) +
+                     (kept > 0 ? Loc.F("home.scanned.kept", kept) : "") + ".";
         }
         finally { Busy = false; }
     }
@@ -337,8 +337,8 @@ public partial class HomeViewModel : TabViewModel
         foreach (var p in projects) _store.Remove(p);
         Reload();
         Status = projects.Count == 1
-            ? $"Quitado de la lista: {projects[0].Name} (no se borró nada del disco)"
-            : $"Quitados {projects.Count} proyectos de la lista (no se borró nada del disco)";
+            ? Loc.F("home.removedOne", projects[0].Name)
+            : Loc.F("home.removedMany", projects.Count);
     }
 
     [RelayCommand]
@@ -353,7 +353,7 @@ public partial class HomeViewModel : TabViewModel
 
     private async Task RenameAsync(ProjectEntry entry)
     {
-        var name = await Dialogs.Prompt("Renombrar en la lista", "Nombre visible (la carpeta no cambia)", entry.Name);
+        var name = await Dialogs.Prompt(Loc.T("home.rename.title"), Loc.T("home.rename.label"), entry.Name);
         if (string.IsNullOrWhiteSpace(name)) return;
         entry.Name = name.Trim();
         _store.Save();

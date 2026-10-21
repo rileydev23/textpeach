@@ -93,7 +93,7 @@ public partial class MainWindowViewModel : ObservableObject
     {
         if (!tab.Closable) return;
         if (tab is ProjectViewModel p && p.HasUnsavedChanges &&
-            !await Dialogs.Confirm("Cambios sin guardar", $"{p.Title} tiene archivos con cambios sin guardar. ¿Cerrar y descartarlos?", "Cerrar"))
+            !await Dialogs.Confirm(Loc.T("common.unsaved"), Loc.F("main.closeProject.text", p.Title), Loc.T("common.close")))
             return;
         int idx = Tabs.IndexOf(tab);
         Tabs.Remove(tab);
@@ -140,7 +140,7 @@ public partial class MainWindowViewModel : ObservableObject
         Store.DataFolder;
 
     [RelayCommand]
-    private Task ShowAbout() => Dialogs.About(Shortcuts.AboutText, ShownDataFolder, Shortcuts.Groups, () =>
+    private Task ShowAbout() => Dialogs.About(Loc.T("dlg.about.text"), ShownDataFolder, Shortcuts.Groups, Store, () =>
     {
         try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(Store.DataFolder) { UseShellExecute = true }); } catch { }
     });

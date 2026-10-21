@@ -1,21 +1,181 @@
-MIT License
+TextPeach License
+Version 1.0 — Copyright (c) 2026 rileydev23 (https://github.com/rileydev23)
 
-Copyright (c) 2026 rileydev23
+The English text below is the binding version. A Spanish translation follows for convenience.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+------------------------------------------------------------------------------
+1. Definitions
+------------------------------------------------------------------------------
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+"Software" means TextPeach: its source code, compiled executables, documentation,
+images and every other file in this repository.
+
+"Author" means rileydev23, the copyright holder.
+
+"Unmodified Use" means running, copying or redistributing the Software exactly as
+published by the Author (an official release or an unmodified build of this
+repository), with every credit, notice, name and logo left in place, and updating
+it only to later versions published by the Author.
+
+"Derived Version" means any modified, extended, rebranded or repackaged version of
+the Software, or any work that includes a substantial part of it.
+
+"Organization" means any company, business, public body or other legal entity, and
+anyone acting on its behalf (employees, contractors, agencies).
+
+------------------------------------------------------------------------------
+2. Unmodified Use is free for everyone
+------------------------------------------------------------------------------
+
+Anyone, including any Organization, may use the Software for any purpose,
+personal or commercial, free of charge, as long as it is Unmodified Use. Nothing
+else is required.
+
+------------------------------------------------------------------------------
+3. Personal Derived Versions require credit
+------------------------------------------------------------------------------
+
+An individual acting on their own behalf (not for an Organization) may study and
+modify the Software and publish or share a Derived Version free of charge, under
+these conditions:
+
+  a) The Derived Version shows, in its about screen (or equivalent) and in its
+     documentation, the notice: "Based on TextPeach by rileydev23 —
+     https://github.com/rileydev23/textpeach".
+  b) This license file is included, unchanged, and the Derived Version is
+     distributed under this same license.
+  c) The Derived Version does not use the name "TextPeach" or its logo as its
+     own name or brand, and does not suggest that the Author endorses it.
+  d) The Derived Version is not sold, and is not offered as a paid product or
+     service.
+
+------------------------------------------------------------------------------
+4. Organization Derived Versions require an agreement
+------------------------------------------------------------------------------
+
+An Organization may not create, use, distribute or offer a Derived Version
+(including internal or private versions) without a prior written agreement with
+the Author. To obtain one, contact the Author through
+https://github.com/rileydev23. The agreement may require royalties or a fixed fee,
+as negotiated.
+
+The same applies to anyone, individual or Organization, who wants to sell a
+Derived Version or offer it as part of a paid product or service.
+
+------------------------------------------------------------------------------
+5. Contributions
+------------------------------------------------------------------------------
+
+Contributions sent to the official repository (pull requests, patches) are
+licensed to the Author under the terms of this license, and the Author may
+include them in the Software and in any agreement made under section 4.
+
+------------------------------------------------------------------------------
+6. Third-party components
+------------------------------------------------------------------------------
+
+The Software uses third-party libraries (Avalonia UI, AvaloniaEdit, TextMateSharp
+and its grammars, Markdig, CommunityToolkit.Mvvm and others). Each one remains
+under its own license, and this license does not change their terms.
+
+------------------------------------------------------------------------------
+7. Termination
+------------------------------------------------------------------------------
+
+Any use that breaks these terms ends the permissions given by this license
+automatically. They are restored if the breach is fixed within 30 days of
+becoming aware of it, unless the Author has already given written notice.
+
+------------------------------------------------------------------------------
+8. No warranty
+------------------------------------------------------------------------------
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHOR BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+==============================================================================
+Traducción al español (solo como referencia; prevalece el texto en inglés)
+==============================================================================
+
+1. Definiciones
+
+"Software": TextPeach, es decir, su código fuente, los ejecutables compilados, la
+documentación, las imágenes y todos los demás archivos de este repositorio.
+
+"Autor": rileydev23, titular de los derechos de autor.
+
+"Uso sin modificar": ejecutar, copiar o redistribuir el Software tal como lo
+publica el Autor (una versión oficial o una compilación sin cambios de este
+repositorio), dejando en su lugar todos los créditos, avisos, nombres y logos, y
+actualizándolo solo a versiones posteriores publicadas por el Autor.
+
+"Versión derivada": cualquier versión modificada, ampliada, con otra marca o
+reempaquetada del Software, o cualquier obra que incluya una parte sustancial de
+él.
+
+"Organización": cualquier empresa, negocio, organismo público u otra persona
+jurídica, y quien actúe en su nombre (empleados, contratistas, agencias).
+
+2. El uso sin modificar es libre para todos
+
+Cualquiera, incluida cualquier Organización, puede usar el Software con cualquier
+fin, personal o comercial, sin pagar nada, siempre que sea un Uso sin modificar.
+No se requiere nada más.
+
+3. Las versiones derivadas personales requieren créditos
+
+Una persona que actúa por cuenta propia (no para una Organización) puede estudiar
+y modificar el Software y publicar o compartir una Versión derivada sin pagar,
+con estas condiciones:
+
+  a) La Versión derivada muestra, en su pantalla "Acerca de" (o equivalente) y en
+     su documentación, el aviso: "Basado en TextPeach de rileydev23 —
+     https://github.com/rileydev23/textpeach".
+  b) Incluye este archivo de licencia sin cambios y se distribuye bajo esta misma
+     licencia.
+  c) No usa el nombre "TextPeach" ni su logo como nombre o marca propios, ni
+     sugiere que el Autor la respalda.
+  d) No se vende ni se ofrece como producto o servicio de pago.
+
+4. Las versiones derivadas de Organizaciones requieren un acuerdo
+
+Una Organización no puede crear, usar, distribuir ni ofrecer una Versión derivada
+(incluidas las versiones internas o privadas) sin un acuerdo previo por escrito
+con el Autor. Para obtenerlo, contacta al Autor a través de
+https://github.com/rileydev23. El acuerdo puede exigir regalías o un monto fijo,
+según se negocie.
+
+Lo mismo aplica a quien quiera, sea persona u Organización, vender una Versión
+derivada u ofrecerla como parte de un producto o servicio de pago.
+
+5. Contribuciones
+
+Las contribuciones enviadas al repositorio oficial (pull requests, parches) se
+licencian al Autor bajo los términos de esta licencia, y el Autor puede
+incluirlas en el Software y en cualquier acuerdo hecho según la sección 4.
+
+6. Componentes de terceros
+
+El Software usa bibliotecas de terceros (Avalonia UI, AvaloniaEdit, TextMateSharp
+y sus gramáticas, Markdig, CommunityToolkit.Mvvm y otras). Cada una mantiene su
+propia licencia, y esta licencia no cambia sus términos.
+
+7. Terminación
+
+Cualquier uso que incumpla estos términos pone fin automáticamente a los permisos
+de esta licencia. Se restablecen si el incumplimiento se corrige dentro de los 30
+días siguientes a conocerlo, salvo que el Autor ya haya avisado por escrito.
+
+8. Sin garantía
+
+EL SOFTWARE SE ENTREGA "TAL CUAL", SIN GARANTÍA DE NINGÚN TIPO, EXPRESA O
+IMPLÍCITA, INCLUIDAS, ENTRE OTRAS, LAS GARANTÍAS DE COMERCIABILIDAD, IDONEIDAD
+PARA UN FIN DETERMINADO Y NO INFRACCIÓN. EN NINGÚN CASO EL AUTOR SERÁ
+RESPONSABLE DE NINGUNA RECLAMACIÓN, DAÑO U OTRA RESPONSABILIDAD, YA SEA EN UNA
+ACCIÓN CONTRACTUAL, EXTRACONTRACTUAL O DE OTRO TIPO, QUE SURJA DEL SOFTWARE, DE
+SU USO O DE OTRAS OPERACIONES CON ÉL, O QUE ESTÉ RELACIONADA CON ELLOS.

@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="using:TextPeach.Services"
              xmlns:vm="using:TextPeach.ViewModels"
              x:Class="TextPeach.Views.SummaryView"
              x:DataType="vm:SummaryViewModel"
@@ -14,7 +15,7 @@
         </StackPanel>
         <StackPanel Spacing="2">
           <StackPanel Orientation="Horizontal" Spacing="10">
-            <TextBlock Text="Resumen del proyecto" FontSize="18" FontWeight="SemiBold" />
+            <TextBlock Text="{l:L summary.title}" FontSize="18" FontWeight="SemiBold" />
             <TextBlock Text="{Binding KindText}" Foreground="#6cc070" VerticalAlignment="Center" />
           </StackPanel>
           <TextBlock Text="{Binding RootPath}" Classes="dim mono" FontSize="12" />
@@ -41,7 +42,7 @@
       <!-- Languages -->
       <Border Background="#222327" BorderBrush="#3a3c42" BorderThickness="1" CornerRadius="4" Padding="14,10">
         <StackPanel Spacing="8">
-          <TextBlock Classes="section" Text="Lenguajes (por líneas)" />
+          <TextBlock Classes="section" Text="{l:L summary.languages}" />
           <ItemsControl ItemsSource="{Binding Languages}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:LangStatVM">
@@ -65,7 +66,7 @@
       <Grid ColumnDefinitions="*,16,*">
         <Border Background="#222327" BorderBrush="#3a3c42" BorderThickness="1" CornerRadius="4" Padding="0,10,0,6" VerticalAlignment="Top">
           <StackPanel Spacing="6">
-            <TextBlock Classes="section" Text="Archivos más extensos" Margin="14,0" />
+            <TextBlock Classes="section" Text="{l:L summary.largest}" Margin="14,0" />
             <ListBox x:Name="BigList" ItemsSource="{Binding Largest}">
               <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:BigFileVM">
@@ -84,7 +85,7 @@
         <Border Grid.Column="2" Background="#222327" BorderBrush="#3a3c42" BorderThickness="1" CornerRadius="4" Padding="0,10,0,6" VerticalAlignment="Top">
           <StackPanel Spacing="6">
             <TextBlock Classes="section" Text="{Binding MarkersHeader}" Margin="14,0" />
-            <TextBlock Classes="dim" FontSize="12" Text="Sin TODO / FIXME / HACK en el proyecto" Margin="14,0" IsVisible="{Binding !Markers.Count}" />
+            <TextBlock Classes="dim" FontSize="12" Text="{l:L summary.noMarkers}" Margin="14,0" IsVisible="{Binding !Markers.Count}" />
             <ListBox x:Name="MarkerList" ItemsSource="{Binding Markers}" MaxHeight="420">
               <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:MarkerRowVM">

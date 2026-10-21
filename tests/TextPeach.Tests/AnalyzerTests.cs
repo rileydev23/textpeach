@@ -27,8 +27,8 @@ public class AnalyzerTests
     public void DetectsMixedLineEndingsAndIndentation()
     {
         var a = Analyze("a\r\nb\n\tc\n    d\n    e\n    f\n", "x.txt");
-        Assert.StartsWith("Mixto", a.LineEnding);
-        Assert.Contains("espacios", a.Indent);
+        Assert.True(a.LineEndingMixed);
+        Assert.True(a.IndentMixed);
     }
 
     [Fact]

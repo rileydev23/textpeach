@@ -20,7 +20,7 @@ public sealed partial class SummaryViewModel : TabViewModel
     [ObservableProperty] private IReadOnlyList<LangStatVM> _languages = Array.Empty<LangStatVM>();
     [ObservableProperty] private IReadOnlyList<BigFileVM> _largest = Array.Empty<BigFileVM>();
     [ObservableProperty] private IReadOnlyList<MarkerRowVM> _markers = Array.Empty<MarkerRowVM>();
-    [ObservableProperty] private string _markersHeader = "Marcadores";
+    [ObservableProperty] private string _markersHeader = "";
 
     private CancellationTokenSource? _cts;
 
@@ -29,8 +29,8 @@ public sealed partial class SummaryViewModel : TabViewModel
     public SummaryViewModel(string root)
     {
         RootPath = root;
-        Title = "Resumen";
-        ToolTip = "Resumen del proyecto";
+        Title = Loc.T("summary.tab");
+        ToolTip = Loc.T("summary.title");
     }
 
     private sealed record FileStat(string Rel, string Lang, int Lines, int Blank, long Size, List<MarkerRowVM> Markers);
@@ -40,7 +40,7 @@ public sealed partial class SummaryViewModel : TabViewModel
         _cts?.Cancel();
         var cts = _cts = new CancellationTokenSource();
         IsBusy = true;
-        BusyText = $"Analizando {files.Count:N0} archivos…";
+        BusyText = Loc.F("summary.analyzing", files.Count);
         KindText = ProjectScanner.DetectKind(RootPath) ?? "";
         try
         {
@@ -95,14 +95,14 @@ public sealed partial class SummaryViewModel : TabViewModel
                 .Select(s => new BigFileVM { RelPath = s.Rel, Lines = s.Lines, Size = s.Size }).ToList();
             var allMarkers = stats.SelectMany(s => s.Markers).OrderBy(m => m.RelPath, StringComparer.OrdinalIgnoreCase).ThenBy(m => m.Line).ToList();
             Markers = allMarkers.Take(MaxMarkers).ToList();
-            MarkersHeader = allMarkers.Count > MaxMarkers ? $"Marcadores ({MaxMarkers} de {allMarkers.Count:N0})" : $"Marcadores ({allMarkers.Count:N0})";
+            MarkersHeader = allMarkers.Count > MaxMarkers ? Loc.F("summary.markersOf", MaxMarkers, allMarkers.Count) : Loc.F("summary.markers", allMarkers.Count);
             Tiles = new[]
             {
-                new StatTile { Label = "Archivos", Value = $"{stats.Count:N0}" + (files.Count >= ProjectScanner.MaxFiles ? "+" : "") },
-                new StatTile { Label = "Líneas", Value = $"{totalLines:N0}" },
-                new StatTile { Label = "Líneas con contenido", Value = $"{nonBlank:N0}" },
-                new StatTile { Label = "Tamaño", Value = FileLoader.FormatSize(totalSize) },
-                new StatTile { Label = "Lenguajes", Value = $"{byLang.Count(l => l.Name != Services.Languages.PlainText.Name)}" },
+                new StatTile { Label = Loc.T("summary.files"), Value = $"{stats.Count:N0}" + (files.Count >= ProjectScanner.MaxFiles ? "+" : "") },
+                new StatTile { Label = Loc.T("summary.lines"), Value = $"{totalLines:N0}" },
+                new StatTile { Label = Loc.T("summary.nonBlank"), Value = $"{nonBlank:N0}" },
+                new StatTile { Label = Loc.T("summary.size"), Value = FileLoader.FormatSize(totalSize) },
+                new StatTile { Label = Loc.T("summary.languagesCount"), Value = $"{byLang.Count(l => l.Name != Services.Languages.PlainText.Name)}" },
             };
         }
         catch (OperationCanceledException) { }

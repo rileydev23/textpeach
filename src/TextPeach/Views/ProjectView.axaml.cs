@@ -395,9 +395,9 @@ public partial class ProjectView : UserControl
     private void UpdateCaret()
     {
         if (_vm is null || _file is null || !ReferenceEquals(Editor.Document, _file.Document)) return;
-        if (_file.IsRendered) { _vm.CaretText = "Vista renderizada"; return; }
+        if (_file.IsRendered) { _vm.CaretText = Loc.T("pv.renderedView"); return; }
         var caret = Editor.TextArea.Caret;
         var sel = Editor.SelectionLength;
-        _vm.CaretText = sel > 0 ? $"Ln {caret.Line}, Col {caret.Column} ({sel} sel.)" : $"Ln {caret.Line}, Col {caret.Column}";
+        _vm.CaretText = sel > 0 ? Loc.F("pv.caretSel", caret.Line, caret.Column, sel) : Loc.F("pv.caret", caret.Line, caret.Column);
     }
 }

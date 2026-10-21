@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
+using TextPeach.Services;
 using TextPeach.ViewModels;
 
 namespace TextPeach.Views;
@@ -24,7 +25,7 @@ public partial class MainWindow : Window
         if (!_confirmedClose && DataContext is MainWindowViewModel { HasUnsavedChanges: true })
         {
             e.Cancel = true;
-            if (await Dialogs.Confirm("Cambios sin guardar", "Hay archivos con cambios sin guardar. ¿Salir y descartarlos?", "Salir"))
+            if (await Dialogs.Confirm(Loc.T("common.unsaved"), Loc.T("main.quit.text"), Loc.T("main.quit.ok")))
             {
                 _confirmedClose = true;
                 Close();

@@ -10,7 +10,7 @@ public sealed record LanguageInfo(
     (string Open, string Close)[] BlockComments,
     OutlineFamily Family = OutlineFamily.None)
 {
-    public bool IsProse => Family is OutlineFamily.Markdown || Name is "Texto";
+    public bool IsProse => Family is OutlineFamily.Markdown || Name == Languages.PlainText.Name;
 }
 
 public static class Languages
@@ -21,7 +21,7 @@ public static class Languages
     private static readonly (string, string)[] XmlBlock = { ("<!--", "-->") };
     private static readonly (string, string)[] None = Array.Empty<(string, string)>();
 
-    public static readonly LanguageInfo PlainText = new("Texto", "#8a8d93", Array.Empty<string>(), None);
+    public static readonly LanguageInfo PlainText = new(Loc.T("lang.text"), "#8a8d93", Array.Empty<string>(), None);
 
     private static readonly Dictionary<string, LanguageInfo> ByExt = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, LanguageInfo> ByName = new(StringComparer.OrdinalIgnoreCase);

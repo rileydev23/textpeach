@@ -369,7 +369,13 @@ carpetas de herramientas y build (`.git`, `node_modules`, `bin`, `obj`, `dist`�
 - **De documento** (dentro de una vista, `ListBox.doctabs`): fondo de la franja `#1e1f22`, separador de 1 px
   entre pestañas, la seleccionada toma el color de la cabecera de abajo (`#26272b`) y texto blanco, para
   que parezca "pegada" al contenido. Primera pestaña fija ("Resumen"). Menú contextual: Cerrar los demás,
-  Cerrar todos. Prefijo en el título: `● ` cambios sin guardar, `✎ ` en edición.
+  Cerrar todos. Prefijo en el título: `● ` cambios sin guardar, `✎ ` en edición. Si el archivo tiene
+  cambios de git, el título toma el color de su estado ([7.15](#715-estado-de-git-solo-lectura)).
+- **Desbordamiento:** toda franja de pestañas (de ventana o de documento) lleva la clase `ListBox.tabstrip`.
+  La barra horizontal ocupa **su propia fila de 4 px debajo** de las pestañas (`AllowAutoHide=False`), sin
+  flechas y sin crecer al pasar el mouse, así nunca tapa ni roba clics a las pestañas. La rueda del mouse
+  desplaza la franja de lado (`Views/TabStrip.cs`, instalado una vez en `App`). La pestaña seleccionada se
+  desplaza a la vista sola.
 
 ### 7.6 Cabecera de documento/sección
 
@@ -404,7 +410,7 @@ Construidos en código (`Views/Dialogs.cs` o `DialogService`), modales, fondo `#
 | `Confirm(título, mensaje, ok)` | Texto + [ok (accent)] [Cancelar] | Esc cancela |
 | `Choose(…, a, b)` | Dos opciones + Cancelar | Esc cancela |
 | `Message(título, texto)` | `TextBlock` con ajuste de línea dentro de un `ScrollViewer` (alto máx. 320) + [Cerrar]. **Nunca** un `TextBox`, ni siquiera de solo lectura. | Esc/Enter cierra |
-| `About(...)` ("Acerca de", F1 y botón `?`) | Logo 48 px + nombre 18 SemiBold + "Versión x.y.z" `dim` + una frase de descripción · separador · "Atajos de teclado" en tabla de dos columnas (gesto monoespaciado `dim` 12 px, ancho 215 · descripción 12 px) agrupada por General/vista · separador · "Datos guardados en: …" `dim` 11 px · [Cerrar]. Nada más. | Esc/Enter cierra |
+| `About(...)` ("Acerca de", F1 y botón `?`) | Logo 48 px + nombre 18 SemiBold + "Versión x.y.z" `dim` + una frase de descripción · separador · "Atajos de teclado" en tabla de dos columnas (gesto monoespaciado `dim` 12 px, ancho 215 · descripción 12 px) agrupada por General/vista · separador · **Idioma** con un conmutador `Button.mode` (English \| Español) y, si cambia, la nota ámbar 11 px "se aplica la próxima vez…" · "Configuración guardada en: …" `dim` 11 px · [Abrir carpeta de configuración] [Cerrar]. Nada más. | Esc/Enter cierra |
 | `Form` / `Prompt` | Etiquetas `dim` sobre cada campo; primer campo enfocado y seleccionado | Enter acepta, Esc cancela |
 | `QuickOpen` / `PickPath` | Buscador arriba + lista sobre `#1e1f22`; nombre SemiBold y ruta `dim` 11 px | ↑/↓ mueve, Enter abre, Esc cierra |
 
@@ -417,7 +423,8 @@ separador ("Quitar de la lista"). Las opciones que abren otra ventana terminan e
 
 ### 7.12 Barra de estado
 
-Izquierda: último aviso (`Notice`) o texto de ocupado; nunca diálogos para información no crítica.
+Izquierda: la **rama de git** si la vista es de un repositorio ([7.15](#715-estado-de-git-solo-lectura)),
+después el último aviso (`Notice`) o texto de ocupado; nunca diálogos para información no crítica.
 Derecha: contexto del elemento actual (posición del cursor, indentación, fin de línea, codificación, lenguaje
 en su color, modo "Solo lectura" `dim` / "Editando" ámbar SemiBold), toggles `flat` y tamaño de fuente.
 
@@ -456,6 +463,42 @@ Texto plano: párrafos separados por líneas en blanco, con el mismo estilo de p
 al bloque; un resultado de búsqueda (que necesita la coincidencia exacta) cambia a **Código**. "Editar"
 siempre pasa a Código. Los marcadores TODO/FIXME en prosa solo cuentan si abren la línea y nunca dentro de
 `código en línea`.
+
+### 7.15 Estado de git (solo lectura)
+
+Las apps que **no** son el cliente de git (TextPeach) muestran el estado como la mayoría de los editores, pero
+nunca ejecutan una acción de git: solo `git --no-optional-locks status --porcelain=v1 -z --branch`
+(`Services/GitStatus.cs`), que ni siquiera refresca el índice. Sin git o fuera de un repositorio, no se muestra
+nada.
+
+| Estado | Color | Letra |
+|---|---|---|
+| Modificado | Ámbar `#e0a24a` | `M` |
+| Sin seguimiento | Verde `#6cc070` | `U` |
+| Agregado | Verde `#6cc070` | `A` |
+| Renombrado | Turquesa `#4ac7c0` | `R` |
+| Eliminado | Rojo `#e0645a` | `D` |
+| Conflicto | Rosa `#d96a9b` | `!` |
+| Ignorado | `Dim` | — |
+
+- **Archivos** (árbol, lista del filtro, título de la pestaña): el nombre en el color del estado y la letra
+  a la derecha (`TextBlock.gitstatus`: 11 px SemiBold, margen `8,0`). Sin cambios, el nombre queda en `Text`.
+- **Carpetas:** nombre en el color del cambio más fuerte que contienen (conflicto > modificado > eliminado >
+  renombrado > agregado > sin seguimiento) y un `•` a la derecha. Lo ignorado no se propaga.
+- **Rama** en la barra de estado, a la izquierda: `Button.flat.branch` con un icono de rama dibujado
+  (`Path.branch`, trazo `Dim` 1.2) + nombre `#a9acb2` + `↑n ↓n` + "n cambios" `dim`. Tooltip con rama, commits
+  por enviar/traer, archivos con cambios y "Clic para abrir el repositorio en GitPeach". *HEAD* separado: el
+  commit corto. **Un clic abre GitPeach** (nunca cambia de rama aquí); si no está instalado, el mismo diálogo
+  que usa GitPeach cuando no encuentra TextPeach ([8.7](#87-integración-con-el-sistema)).
+- Se actualiza con *debounce* (600 ms) ante cualquier cambio de la carpeta o de `.git` (salvo `*.lock`) y con
+  F5.
+
+### 7.16 Barras de desplazamiento
+
+`ScrollBarSize` = 10 px (Fluent usa más): la barra sigue siendo una línea fina en reposo y al pasar el mouse
+crece solo hasta 10 px. En franjas de pestañas se usa `ListBox.tabstrip` ([7.5](#75-pestañas)), con barra fija
+de 4 px en su propia fila. Regla general: una barra nunca debe quedar encima de elementos clicables que
+estén pegados a su borde; si pasa, va en su propia fila (`AllowAutoHide=False`).
 
 ---
 
@@ -530,9 +573,47 @@ Guardar / Descartar / Cancelar. Se guarda con la misma codificación y BOM con l
 
 **TextPeach** solo ofrece "Abrir con la aplicación predeterminada" (`Process.Start` con `UseShellExecute=true`): en la toolbar, en el menú `⋯` del archivo, en la nota de binarios y en el menú de la Home (para la carpeta). Los enlaces `http(s)`/`mailto` de los documentos también se delegan al sistema.
 
-**GitPeach** ofrece Explorador y Terminal (herramientas del sistema) y **TextPeach** en lugar de cualquier editor externo: el botón "TextPeach" de la toolbar abre el repositorio, y "Abrir en TextPeach" del menú de un archivo abre el repositorio con ese archivo. TextPeach se busca junto a `GitPeach.exe`, en una carpeta hermana `..TextPeach`, en `%LOCALAPPDATA%ProgramsTextPeach`, en `%ProgramFiles%TextPeach` y en el `PATH` (`TextPeachLocator`). Si no está, un diálogo dice qué es y ofrece **Ir al repositorio** (accent) o **Por ahora no**.
+**GitPeach** ofrece Explorador y Terminal (herramientas del sistema) y **TextPeach** en lugar de cualquier editor externo: el botón "TextPeach" de la toolbar abre el repositorio, y "Abrir en TextPeach" del menú de un archivo abre el repositorio con ese archivo.
 
-Ambas aceptan rutas por línea de comandos (`App.exe <carpeta> [archivo]`). TextPeach es de instancia única: una segunda ejecución entrega sus rutas a la ventana abierta por una *named pipe* y termina, así varias apps pueden pedirle abrir cosas sin crear ventanas duplicadas ni pisar `state.json`.
+**TextPeach** delega todo lo de git en **GitPeach**: un clic en la rama de la barra de estado ejecuta `GitPeach.exe <repositorio>`.
+
+Cada app busca a la otra (`TextPeachLocator` / `GitPeachLocator`, espejos uno del otro) en este orden: el
+`location.json` que la otra anotó al abrirse ([8.8](#88-carpeta-compartida-peachapps)), junto al propio exe,
+en una carpeta hermana `..\<App>`, en `%LOCALAPPDATA%\Programs\<App>`, en `%ProgramFiles%\<App>` y en el
+`PATH`. Si no está, un diálogo dice qué es y ofrece **Ir al repositorio** (accent) o **Por ahora no**, con el
+mismo texto en ambas apps ("<App> es el … que acompaña a <la otra>, y no se encontró en este equipo. Si ya lo
+tienes, ábrelo una vez desde donde esté y <la otra> lo reconocerá solo…").
+
+Ambas aceptan rutas por línea de comandos (`App.exe <carpeta> [archivo]`) y son de **instancia única**: una
+segunda ejecución entrega sus rutas a la ventana abierta por una *named pipe* (`Services/SingleInstance.cs`,
+mutex y pipe por usuario) y termina, así las apps se pueden pedir cosas entre sí sin crear ventanas duplicadas
+ni pisar el estado guardado.
+
+### 8.8 Carpeta compartida `peachapps`
+
+Todas las apps Peach guardan su configuración en una carpeta común (`Services/PeachApps.cs`, el mismo archivo
+en cada app con otro *namespace*):
+
+```
+%APPDATA%\peachapps\
+  GitPeach\    state.json · location.json
+  TextPeach\   state.json · location.json
+```
+
+- `state.json`: el estado de la app (lista, pestañas, ventana, idioma, preferencias). En modo portable
+  (`portable.txt` junto al exe) va en `.\data\` y no se usa la carpeta compartida.
+- `location.json`: lo escribe la app **cada vez que se abre** (también en modo portable), para que las demás
+  la encuentren aunque se haya movido:
+
+  ```json
+  { "exe": "D:\\Apps\\TextPeach\\TextPeach.exe", "version": "1.0.0", "lastRun": "2026-10-20T20:41:07-03:00" }
+  ```
+
+  Se escribe a un `.tmp` y se renombra (nunca queda a medias). Las compilaciones Debug no lo escriben, para no
+  reemplazar la ubicación de la versión real. Quien lo lee solo confía en `exe` si ese archivo sigue
+  existiendo.
+- La primera vez se migra la configuración de la ubicación antigua (`%APPDATA%\<App>\`).
+- "Acerca de" muestra la carpeta real y tiene **Abrir carpeta de configuración**.
 
 ---
 
@@ -546,7 +627,7 @@ Convenciones compartidas (no las reutilices para otra cosa):
 | `Ctrl+Tab` / `Ctrl+Shift+Tab` | Pestaña siguiente / anterior |
 | `Ctrl+1 … Ctrl+9` | Ir a la pestaña N |
 | `Ctrl+W` | Cerrar (documento actual; si no hay, la pestaña) |
-| `F1` | "Acerca de" con los atajos (botón `?` en la barra de pestañas) |
+| `F1` | "Acerca de" con los atajos y el idioma (botón `?` en la barra de pestañas) |
 | `F5` | Refrescar |
 | `Ctrl+F` | Buscar dentro de la vista actual |
 | `Ctrl+Shift+F` | Búsqueda amplia (en TextPeach, en todo el proyecto) |
@@ -563,6 +644,18 @@ debe tener el foco al abrirla. Los atajos se muestran también en `ToolTip.Tip` 
 
 ## 10. Textos y tono
 
+- **Dos idiomas, inglés y español.** Ningún texto visible va escrito en XAML ni en C#: todos viven en
+  `Services/Strings.cs` como par (inglés, español) bajo una clave por pantalla (`home.add`, `pv.goToFile`,
+  `git.modified`…). En XAML `Text="{l:L clave}"` (con `xmlns:l="using:<App>.Services"`), en C# `Loc.T("clave")`,
+  `Loc.F("clave", args)` y `Loc.Plural("clave", n)` (busca `clave.one` / `clave.many`). Un test verifica que
+  cada clave usada exista y que ambos idiomas tengan los mismos marcadores `{0}`.
+- El idioma se resuelve una vez al iniciar (`Loc.Init`, antes de crear vistas): el elegido en "Acerca de" o,
+  si no hay, el de Windows (español si Windows está en español; inglés en otro caso). Las apps usan
+  globalización invariante, así que el idioma del sistema se pide a Windows (`GetUserDefaultUILanguage`).
+  Cambiarlo se aplica al reiniciar.
+- Lo que no se traduce: nombres de apps, atajos (`Ctrl+P`), términos técnicos (stage, commit, TODO, CRLF),
+  rutas y nombres de lenguajes.
+- Inglés: claro y corto, *sentence case* ("Search project", "Open with the default app").
 - Español neutro, tuteo ("Agrega uno…", "Elige un archivo…"). Sin exclamaciones ni emojis.
 - Mayúscula solo al inicio (*sentence case*): "Buscar en proyecto", "Abrir con la aplicación predeterminada".
 - Términos técnicos del dominio se dejan como se usan (stage, commit, fetch, hunk, TODO).
@@ -807,7 +900,7 @@ MiApp/
     Assets/        app.ico · icon64.png · (peach-dark.json)
     Controls/      Palette.cs · controles dibujados a mano
     Models/        datos
-    Services/      estado (Store), escáneres, lógica pura
+    Services/      estado (Store), escáneres, lógica pura · PeachApps · SingleInstance · Loc + Strings
     ViewModels/    TabViewModel · MainWindowViewModel · HomeViewModel · <Elemento>ViewModel · RowModels · Shortcuts
     Views/         MainWindow · HomeView · <Elemento>View · Dialogs
   tests/MiApp.Tests/
@@ -826,7 +919,11 @@ MiApp/
 - [ ] Un solo botón `accent` por zona; acciones riesgosas con confirmación o `warn`.
 - [ ] `state.json` con pestañas, sesión por pestaña, ventana y preferencias; `portable.txt`.
 - [ ] Atajos comunes de [9](#9-teclado) + `Shortcuts.cs` + F1 + `Ctrl+1…9`.
-- [ ] Textos en español neutro, *sentence case*, `...` en acciones con diálogo.
+- [ ] Textos en `Strings.cs` (inglés y español), *sentence case*, `...` en acciones con diálogo; selector de
+      idioma en "Acerca de".
+- [ ] `PeachApps.SettingsFolder` + `PeachApps.Announce` al iniciar; instancia única; locator de las apps
+      hermanas.
+- [ ] Franjas de pestañas con `ListBox.tabstrip`; `ScrollBarSize` 10.
 - [ ] Trabajo pesado fuera del hilo de UI, *debounce* y límites comunicados.
 - [ ] `build.cmd` (single-file portable) y `dev.cmd`; tests xUnit de la lógica pura.
 - [ ] Si se agrega un patrón nuevo, documentarlo aquí.
@@ -841,7 +938,8 @@ MiApp/
 | Pestaña de trabajo | `RepoView`: ramas │ historial con grafo │ cambios + diff | `ProjectView`: árbol/búsqueda │ archivos abiertos │ análisis |
 | Banner ámbar | Merge/rebase en curso | Modo edición |
 | Banner azul | Cabecera de hunk | Archivo cambiado en disco |
-| Letras de estado | `A M D R U` en archivos | `C I M ƒ #…` en el outline; `TODO FIXME…` en marcadores |
+| Letras de estado | `A M D R U` en archivos | `M U A R D !` de git en árbol y pestañas (solo lectura); `C I M ƒ #…` en el outline; `TODO FIXME…` en marcadores |
+| Rama | Barra lateral y toolbar (con acciones) | Barra de estado, solo se muestra; clic → GitPeach |
 | Serie de colores | Carriles del grafo | Lenguajes (árbol, resumen) |
 | Búsqueda rápida | `Ctrl+P` repos | `Ctrl+P` archivos · `Ctrl+Shift+O` proyectos |
 | Log/estado | Log de comandos git | Cursor, codificación, EOL, lenguaje, modo |

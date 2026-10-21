@@ -80,7 +80,7 @@ public static class DocumentRenderer
             RenderPlain(body.Children, text, ctx);
         }
         if (body.Children.Count == 0)
-            body.Children.Add(new TextBlock { Text = "Documento vacío", Foreground = Palette.Dim, FontStyle = FontStyle.Italic });
+            body.Children.Add(new TextBlock { Text = Loc.T("doc.empty"), Foreground = Palette.Dim, FontStyle = FontStyle.Italic });
         return doc;
     }
 

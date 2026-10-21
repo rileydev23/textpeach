@@ -40,6 +40,13 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
     [ObservableProperty] private string _notice = "";
     [ObservableProperty] private string _caretText = "";
     [ObservableProperty] private string _filesText = "";
+    [ObservableProperty] private bool _hasGit;
+    [ObservableProperty] private string _branchText = "";
+    [ObservableProperty] private string _branchTip = "";
+    [ObservableProperty] private string _changesText = "";
+
+    /// <summary>Latest git state of the project (read-only: TextPeach shows it, GitPeach acts on it).</summary>
+    public GitDecorations Git { get; } = new();
 
     public OpenFileViewModel? SelectedFile => SelectedDoc as OpenFileViewModel;
     public bool HasFile => SelectedFile is not null;
@@ -51,7 +58,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
 
     private List<string> _allFiles = new();
     private FileSystemWatcher? _watcher;
-    private CancellationTokenSource? _treeDebounce, _searchCts, _searchDebounce, _scanCts;
+    private CancellationTokenSource? _treeDebounce, _searchCts, _searchDebounce, _scanCts, _gitDebounce;
     private readonly Dictionary<string, CancellationTokenSource> _fileDebounce = new(StringComparer.OrdinalIgnoreCase);
     private bool _disposed;
     private bool _restoring = true; // until the saved session has been reopened
@@ -67,10 +74,11 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         Docs.Add(Summary);
         SelectedDoc = Summary;
 
-        foreach (var n in FileNode.ListChildren(path, path)) Tree.Add(n);
+        foreach (var n in FileNode.ListChildren(path, path, Git)) Tree.Add(n);
         RestoreSession();
         StartWatcher();
         _ = RescanAsync();
+        ScheduleGitRefresh(0);
     }
 
     partial void OnSelectedDocChanged(TabViewModel? value)
@@ -93,7 +101,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
             var files = await Task.Run(() => ProjectScanner.ListFiles(RootPath, cts.Token), cts.Token);
             if (cts.IsCancellationRequested) return;
             _allFiles = files;
-            FilesText = files.Count >= ProjectScanner.MaxFiles ? $"{files.Count:N0}+ archivos" : $"{files.Count:N0} archivos";
+            FilesText = files.Count >= ProjectScanner.MaxFiles ? Loc.F("pv.filesCountMore", files.Count) : Loc.Plural("common.files", files.Count);
             ApplyFilter();
             await Summary.ComputeAsync(files);
         }
@@ -112,7 +120,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         var selected = SelectedNode?.RelPath;
 
         Tree.Clear();
-        foreach (var n in FileNode.ListChildren(RootPath, RootPath)) Tree.Add(n);
+        foreach (var n in FileNode.ListChildren(RootPath, RootPath, Git)) Tree.Add(n);
         void Expand(IEnumerable<FileNode> nodes)
         {
             foreach (var n in nodes)
@@ -158,7 +166,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         FilterHits.Clear();
         if (!IsFiltering) return;
         foreach (var rel in Dialogs.RankPaths(_allFiles, q, MaxFilterHits))
-            FilterHits.Add(new FileHit { RelPath = rel });
+            FilterHits.Add(new FileHit { RelPath = rel, Change = Git.For(rel, false) });
         SelectedHit = FilterHits.FirstOrDefault();
     }
 
@@ -174,13 +182,13 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         var full = Path.Combine(RootPath, relPath.Replace('/', Path.DirectorySeparatorChar));
         if (!File.Exists(full))
         {
-            Notice = $"El archivo no existe: {relPath}";
+            Notice = Loc.F("pv.fileMissing", relPath);
             return null;
         }
         var doc = Docs.OfType<OpenFileViewModel>().FirstOrDefault(d => string.Equals(d.RelPath, relPath, StringComparison.OrdinalIgnoreCase));
         if (doc is null)
         {
-            doc = new OpenFileViewModel(RootPath, relPath);
+            doc = new OpenFileViewModel(RootPath, relPath) { Change = Git.For(relPath, false) };
             var captured = doc;
             doc.CloseCommand = new AsyncRelayCommand(() => CloseDocAsync(captured));
             // Open next to the current tab, like most editors.
@@ -277,7 +285,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
     [RelayCommand]
     public async Task QuickOpenFileAsync()
     {
-        var picked = await Dialogs.PickPath("Ir a archivo", _allFiles, "Buscar archivo por nombre o ruta…");
+        var picked = await Dialogs.PickPath(Loc.T("pv.goToFile"), _allFiles, Loc.T("pv.goToFile.watermark"));
         if (picked is not null) { OpenFile(picked); EditorFocusRequested?.Invoke(); }
     }
 
@@ -286,7 +294,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
     {
         if (SelectedFile is not { IsText: true } f) return;
         var total = f.Document.LineCount;
-        var input = await Dialogs.Prompt("Ir a línea", $"Línea (1 – {total:N0}), opcionalmente línea:columna");
+        var input = await Dialogs.Prompt(Loc.T("pv.goToLine"), Loc.F("pv.goToLine.label", total));
         if (string.IsNullOrWhiteSpace(input)) return;
         var parts = input.Split(':', ',');
         if (!int.TryParse(parts[0].Trim(), out var line)) return;
@@ -351,7 +359,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         }
         catch (ArgumentException ex)
         {
-            SearchRows = new[] { new SearchRowVM { Kind = SearchRowKind.Note, Text = "Expresión regular inválida: " + ex.Message } };
+            SearchRows = new[] { new SearchRowVM { Kind = SearchRowKind.Note, Text = Loc.F("pv.badRegex", ex.Message) } };
             SearchSummary = "";
             return;
         }
@@ -360,15 +368,15 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         var files = FilterByGlob(_allFiles, IncludeGlob);
         var root = RootPath;
         IsSearching = true;
-        SearchSummary = "Buscando…";
+        SearchSummary = Loc.T("pv.searching");
         var sw = Stopwatch.StartNew();
         try
         {
             var (rows, matches, fileCount, truncated) = await Task.Run(() => SearchFiles(root, files, rx, cts.Token), cts.Token);
             if (cts.IsCancellationRequested) return;
-            SearchRows = rows.Count > 0 ? rows : new[] { new SearchRowVM { Kind = SearchRowKind.Note, Text = "Sin resultados" } };
-            SearchSummary = matches == 0 ? $"Sin resultados · {files.Count:N0} archivos revisados"
-                : $"{matches:N0} coincidencias en {fileCount:N0} archivos{(truncated ? " (limitado)" : "")} · {sw.ElapsedMilliseconds} ms";
+            SearchRows = rows.Count > 0 ? rows : new[] { new SearchRowVM { Kind = SearchRowKind.Note, Text = Loc.T("pv.noResults") } };
+            SearchSummary = matches == 0 ? Loc.F("pv.noResultsIn", files.Count)
+                : Loc.F("pv.results", matches, fileCount, truncated ? Loc.T("pv.results.limited") : "", sw.ElapsedMilliseconds);
         }
         catch (OperationCanceledException) { }
         finally
@@ -462,7 +470,8 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         foreach (var d in Docs.OfType<OpenFileViewModel>().Where(d => !d.IsEditing))
             await d.LoadAsync(keepView: true);
         await RescanAsync();
-        Notice = "Proyecto actualizado";
+        ScheduleGitRefresh(0);
+        Notice = Loc.T("project.refreshed");
     }
 
     /// <summary>The only hand-off to the outside: whatever app the system associates with the file.</summary>
@@ -490,7 +499,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         else if (File.Exists(full) || Directory.Exists(full))
             OpenExternal(full);
         else
-            Notice = $"No se encontró: {path}";
+            Notice = Loc.F("pv.notFound", path);
     }
 
     private void OpenExternal(string target)
@@ -505,7 +514,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         if (SelectedFile is not { } f || Dialogs.Owner?.Clipboard is not { } cb) return;
         var text = which == "rel" ? f.RelPath : f.FullPath;
         await cb.SetTextAsync(text);
-        Notice = $"Copiado: {text}";
+        Notice = Loc.F("pv.copied", text);
     }
 
     [RelayCommand]
@@ -560,10 +569,16 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
     {
         if (_disposed || fullPath.Length <= RootPath.Length) return;
         var rel = fullPath[(RootPath.TrimEnd('\\', '/').Length + 1)..].Replace('\\', '/');
+        // Inside .git only the state matters (commits, checkouts, staging done elsewhere); lock files come and go.
+        if (rel.StartsWith(".git/", StringComparison.OrdinalIgnoreCase) || rel.Equals(".git", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!rel.EndsWith(".lock", StringComparison.OrdinalIgnoreCase)) Dispatcher.UIThread.Post(() => ScheduleGitRefresh());
+            return;
+        }
         foreach (var seg in rel.Split('/').SkipLast(1))
             if (ProjectScanner.IsSkipped(seg)) return;
         if (structural) ScheduleTreeRefresh();
-        Dispatcher.UIThread.Post(() => ScheduleFileReload(rel));
+        Dispatcher.UIThread.Post(() => { ScheduleFileReload(rel); ScheduleGitRefresh(); });
     }
 
     private void ScheduleFileReload(string rel)
@@ -592,9 +607,59 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         });
     }
 
+    // ------------------------------------------------------------ git (read-only)
+
+    /// <summary>Re-reads branch and file states after a short pause, so a burst of changes costs one <c>git status</c>.</summary>
+    public void ScheduleGitRefresh(int delayMs = 600)
+    {
+        if (_disposed) return;
+        _gitDebounce?.Cancel();
+        var cts = _gitDebounce = new CancellationTokenSource();
+        Dispatcher.UIThread.Post(async () =>
+        {
+            try { if (delayMs > 0) await Task.Delay(delayMs, cts.Token); } catch (OperationCanceledException) { return; }
+            var snap = await GitStatus.ReadAsync(RootPath, cts.Token);
+            if (cts.IsCancellationRequested || _disposed) return;
+            ApplyGit(snap);
+        });
+    }
+
+    private void ApplyGit(GitSnapshot? snap)
+    {
+        Git.Snapshot = snap;
+        HasGit = snap is not null;
+        foreach (var n in Tree) n.RefreshGit();
+        foreach (var d in Docs.OfType<OpenFileViewModel>()) d.Change = Git.For(d.RelPath, false);
+        if (snap is null) { BranchText = BranchTip = ChangesText = ""; return; }
+
+        var name = snap.Detached ? GitStatus.ReadDetachedCommit(snap.RepoRoot) ?? "HEAD" : snap.Branch;
+        var sync = (snap.Ahead > 0 ? $" ↑{snap.Ahead}" : "") + (snap.Behind > 0 ? $" ↓{snap.Behind}" : "");
+        BranchText = name + sync;
+        int changes = snap.ChangedCount;
+        ChangesText = changes > 0 ? Loc.Plural("git.changes", changes) : "";
+        var lines = new List<string> { Loc.F(snap.Detached ? "git.tip.detached" : "git.tip.branch", name) };
+        if (snap.Ahead > 0) lines.Add(Loc.Plural("git.tip.ahead", snap.Ahead));
+        if (snap.Behind > 0) lines.Add(Loc.Plural("git.tip.behind", snap.Behind));
+        lines.Add(changes > 0 ? Loc.Plural("git.tip.changes", changes) : Loc.T("git.tip.clean"));
+        lines.Add(Loc.T("git.tip.open"));
+        BranchTip = string.Join(Environment.NewLine, lines);
+    }
+
+    /// <summary>The branch in the status bar: everything git happens in GitPeach; TextPeach only shows the state.</summary>
+    [RelayCommand]
+    private async Task OpenInGitPeachAsync()
+    {
+        var repo = Git.Snapshot?.RepoRoot ?? GitStatus.FindRepoRoot(RootPath) ?? RootPath;
+        if (GitPeachLocator.Open(repo)) return;
+        if (await Dialogs.Confirm(Loc.T("gitpeach.missing.title"), Loc.T("gitpeach.missing.text"),
+                Loc.T("gitpeach.missing.go"), Loc.T("gitpeach.missing.later")))
+            OpenExternal(GitPeachLocator.RepoUrl);
+    }
+
     public void Dispose()
     {
         _disposed = true;
+        _gitDebounce?.Cancel();
         _treeDebounce?.Cancel();
         _searchCts?.Cancel();
         _searchDebounce?.Cancel();

@@ -19,6 +19,8 @@ public sealed class FileAnalysis
     public int LongestLineNo { get; init; }
     public string Indent { get; init; } = "—";
     public string LineEnding { get; init; } = "—";
+    public bool IndentMixed { get; init; }
+    public bool LineEndingMixed { get; init; }
     public int Branches { get; init; }
     public int MaxDepth { get; init; }
     public bool TrailingWhitespace { get; init; }
@@ -66,10 +68,12 @@ public static partial class FileAnalyzer
             if (!lang.IsProse && IsCommentLine(t, lang, ref inBlock)) comment++;
         }
 
+        bool indentMixed = tabs > spaces ? spaces > tabs / 10 : tabs > 0 && tabs > spaces / 10;
         string indent = tabs == 0 && spaces == 0 ? "—"
-            : tabs > spaces ? (spaces > tabs / 10 ? "Mixta (tabs)" : "Tabs")
-            : (tabs > spaces / 10 ? "Mixta (espacios)" : $"{(spaceWidths.Count > 0 ? spaceWidths.MaxBy(k => k.Value).Key : 4)} espacios");
-        string eol = crlf == 0 && lf == 0 ? "—" : crlf > 0 && lf > 0 ? $"Mixto ({crlf} CRLF / {lf} LF)" : crlf > 0 ? "CRLF" : "LF";
+            : tabs > spaces ? Loc.T(indentMixed ? "indent.mixedTabs" : "indent.tabs")
+            : indentMixed ? Loc.T("indent.mixedSpaces") : Loc.F("indent.spaces", spaceWidths.Count > 0 ? spaceWidths.MaxBy(k => k.Value).Key : 4);
+        bool eolMixed = crlf > 0 && lf > 0;
+        string eol = crlf == 0 && lf == 0 ? "—" : eolMixed ? Loc.F("eol.mixed", crlf, lf) : crlf > 0 ? "CRLF" : "LF";
 
         int total = lines.Count;
         return new FileAnalysis
@@ -83,6 +87,8 @@ public static partial class FileAnalyzer
             LongestLineNo = longestNo,
             Indent = indent,
             LineEnding = eol,
+            IndentMixed = indentMixed,
+            LineEndingMixed = eolMixed,
             Branches = lang.IsProse || lang.Family is OutlineFamily.Json or OutlineFamily.Yaml or OutlineFamily.Xml ? 0 : BranchRegex().Count(text),
             MaxDepth = MaxBraceDepth(text, lang),
             TrailingWhitespace = trailing > 0,

@@ -1,5 +1,7 @@
 using System.Windows.Input;
+using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
+using TextPeach.Services;
 
 namespace TextPeach.ViewModels;
 
@@ -8,6 +10,11 @@ public abstract partial class TabViewModel : ObservableObject
 {
     [ObservableProperty] private string _title = "";
     [ObservableProperty] private string _toolTip = "";
+    /// <summary>Git state of a file tab; colors its title like the tree does.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TitleBrush))]
+    private GitChange _change;
+    public IBrush TitleBrush => GitLook.NameBrush(Change);
     public virtual bool Closable => true;
     public ICommand? CloseCommand { get; set; }
 }
