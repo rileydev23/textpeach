@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using AvaloniaEdit.Editing;
 using AvaloniaEdit.Folding;
 using AvaloniaEdit.TextMate;
 using TextPeach.Controls;
@@ -24,17 +25,36 @@ public partial class ProjectView : UserControl
     private TextMate.Installation? _tm;
     private FoldingManager? _folding;
     private ViewerSettings? _settings;
+    private readonly GitChangeMargin _changeMargin = new();
 
     public ProjectView()
     {
         InitializeComponent();
         ConfigureEditor();
 
+        // One click previews a file (see OnSelectedNodeChanged); a double click keeps its tab.
         FileTree.DoubleTapped += (_, e) =>
         {
-            if (e.Source is Control c && c.FindAncestorOfType<TreeViewItem>()?.DataContext is FileNode { IsDirectory: true } n)
-                n.IsExpanded = !n.IsExpanded;
+            if (e.Source is not Control c || c.FindAncestorOfType<TreeViewItem>()?.DataContext is not FileNode n) return;
+            if (n.IsDirectory) n.IsExpanded = !n.IsExpanded;
+            else _vm?.PinNode(n);
         };
+        FileTree.ContextRequested += (_, e) =>
+        {
+            e.Handled = true;
+            var node = (e.Source as Control)?.FindAncestorOfType<TreeViewItem>(includeSelf: true)?.DataContext as FileNode;
+            if (_vm is not null) MenuPresenter.Show(FileTree, _vm.MenuForNode(node));
+        };
+        DocTabs.DoubleTapped += (_, e) =>
+        {
+            if (Item<TabViewModel>(e) is { } t) _vm?.Pin(t);
+        };
+        RecentList.Tapped += (_, e) =>
+        {
+            if (Item<RecentChangeVM>(e) is { } r) _vm?.OpenRecent(r);
+        };
+        Ruler.LineRequested += line => { _vm?.RevealInCurrent(line); Editor.TextArea.Focus(); };
+        Diff.LayoutChanged += side => { if (_settings is not null) _settings.DiffSideBySide = side; };
         FilterBox.KeyDown += (_, e) =>
         {
             if (_vm is null) return;
@@ -64,11 +84,11 @@ public partial class ProjectView : UserControl
         };
         OutlineList.Tapped += (_, e) =>
         {
-            if (Item<OutlineRowVM>(e) is { } o) { _file?.Reveal(o.Line); Editor.TextArea.Focus(); }
+            if (Item<OutlineRowVM>(e) is { } o) { _vm?.RevealInCurrent(o.Line); Editor.TextArea.Focus(); }
         };
         MarkerList.Tapped += (_, e) =>
         {
-            if (Item<MarkerRowVM>(e) is { } m) { _file?.Reveal(m.Line); Editor.TextArea.Focus(); }
+            if (Item<MarkerRowVM>(e) is { } m) { _vm?.RevealInCurrent(m.Line); Editor.TextArea.Focus(); }
         };
 
         DataContextChanged += (_, _) => Attach();
@@ -99,6 +119,9 @@ public partial class ProjectView : UserControl
         area.Caret.CaretBrush = Palette.Accent;
         area.Caret.PositionChanged += (_, _) => UpdateCaret();
         area.SelectionChanged += (_, _) => UpdateCaret();
+        // Git change bars sit between the line numbers and the text, as in VS Code.
+        var numbers = area.LeftMargins.OfType<LineNumberMargin>().FirstOrDefault();
+        area.LeftMargins.Insert(numbers is null ? 0 : area.LeftMargins.IndexOf(numbers) + 1, _changeMargin);
         // Block typing/paste in read-only mode even for the clipboard shortcuts AvaloniaEdit maps itself.
         Editor.IsReadOnly = true;
     }
@@ -111,6 +134,11 @@ public partial class ProjectView : UserControl
         Editor.Options.ShowSpaces = _settings.ShowWhitespace;
         Editor.Options.ShowTabs = _settings.ShowWhitespace;
         Editor.Options.ShowEndOfLine = _settings.ShowWhitespace;
+        if (Diff.EditorFontSize != _settings.FontSize)
+        {
+            Diff.EditorFontSize = _settings.FontSize;
+            if (_file is { IsDiffVisible: true }) UpdateDiff();
+        }
     }
 
     // ------------------------------------------------------------ view-model wiring
@@ -149,6 +177,7 @@ public partial class ProjectView : UserControl
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(ProjectViewModel.SelectedDoc)) SwitchTo(_vm?.SelectedFile);
+        else if (e.PropertyName == nameof(ProjectViewModel.SearchRows)) UpdateRuler();
     }
 
     private void OnSettingsChanged(object? sender, PropertyChangedEventArgs e) => ApplySettings();
@@ -177,14 +206,16 @@ public partial class ProjectView : UserControl
             _file.RevealRequested -= OnReveal;
             _file.Reloaded -= OnReloaded;
             _file.PropertyChanged -= OnFilePropertyChanged;
+            _file.MarksChanged -= OnMarksChanged;
         }
         _file = f;
         UninstallFolding();
-        if (f is null) return;
+        if (f is null) { Diff.Clear(); return; }
 
         f.RevealRequested += OnReveal;
         f.Reloaded += OnReloaded;
         f.PropertyChanged += OnFilePropertyChanged;
+        f.MarksChanged += OnMarksChanged;
 
         Editor.Document = f.Document;
         Editor.IsReadOnly = !f.IsEditing;
@@ -193,6 +224,34 @@ public partial class ProjectView : UserControl
         RestoreViewState(f);
         UpdateRendered(restoreScroll: true);
         UpdateCaret();
+        Diff.Clear(); // another file: its diff opens on the first change
+        OnMarksChanged();
+    }
+
+    // ------------------------------------------------------------ git changes: margin, ruler and diff
+
+    private void OnMarksChanged()
+    {
+        if (_file is null) return;
+        _changeMargin.Marks = _file.Marks;
+        UpdateRuler();
+        if (_file.IsDiffVisible) UpdateDiff();
+    }
+
+    private void UpdateRuler()
+    {
+        var f = _file;
+        if (f is null) return;
+        var matches = (_vm?.SearchRows ?? Array.Empty<SearchRowVM>())
+            .Where(r => r.IsMatch && string.Equals(r.RelPath, f.RelPath, StringComparison.OrdinalIgnoreCase))
+            .Select(r => r.Line).Distinct().ToList();
+        Ruler.Update(f.Marks, matches, f.Document.LineCount, Editor.TextArea.Caret.Line);
+    }
+
+    private void UpdateDiff(bool toFirstChange = false)
+    {
+        if (_file?.DiffRows is not { } rows) { Diff.Clear(); return; }
+        Diff.Show(rows, _file.Scope, _settings?.DiffSideBySide ?? true, toFirstChange);
     }
 
     // ------------------------------------------------------------ rendered view (Markdown / text)
@@ -253,9 +312,7 @@ public partial class ProjectView : UserControl
         _tm = null;
         try
         {
-            _tm = Editor.InstallTextMate(Highlighting.Instance);
-            _tm.SetTheme(Highlighting.Instance.Theme);
-            if (f.Scope is not null) _tm.SetGrammar(f.Scope);
+            _tm = SyntaxColoring.Install(Editor, f.Scope);
         }
         catch { /* plain text is fine */ }
     }
@@ -310,12 +367,16 @@ public partial class ProjectView : UserControl
             case nameof(OpenFileViewModel.ContentVersion):
                 UpdateRendered(restoreScroll: false);
                 break;
+            case nameof(OpenFileViewModel.IsDiff):
+                if (_file.IsDiffVisible) UpdateDiff(toFirstChange: true);
+                break;
         }
     }
 
     private void OnReloaded()
     {
         if (_file is null) return;
+        SyntaxColoring.RepaintSoon(Editor);
         if (_folding is null) InstallFolding(_file);
         else UpdateFoldings();
         UpdateRendered(restoreScroll: false);
@@ -397,6 +458,8 @@ public partial class ProjectView : UserControl
         if (_vm is null || _file is null || !ReferenceEquals(Editor.Document, _file.Document)) return;
         if (_file.IsRendered) { _vm.CaretText = Loc.T("pv.renderedView"); return; }
         var caret = Editor.TextArea.Caret;
+        _file.CaretLine = caret.Line;
+        Ruler.SetCaret(caret.Line);
         var sel = Editor.SelectionLength;
         _vm.CaretText = sel > 0 ? Loc.F("pv.caretSel", caret.Line, caret.Column, sel) : Loc.F("pv.caret", caret.Line, caret.Column);
     }

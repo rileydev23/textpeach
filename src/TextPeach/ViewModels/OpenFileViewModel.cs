@@ -41,17 +41,21 @@ public sealed partial class OpenFileViewModel : TabViewModel, IDisposable
     [ObservableProperty] private IReadOnlyList<MarkerRowVM> _markers = Array.Empty<MarkerRowVM>();
     [ObservableProperty] private FileAnalysis _analysis = FileAnalysis.Empty;
     [ObservableProperty] private bool _isRendered;
+    /// <summary>Shows the changes against the last commit instead of the file.</summary>
+    [ObservableProperty] private bool _isDiff;
     /// <summary>Bumped on every (re)load so the rendered view knows to rebuild.</summary>
     [ObservableProperty] private int _contentVersion;
 
     /// <summary>How this file can be shown besides plain code.</summary>
     public RenderKind RenderMode { get; }
     private bool _renderDecided;
+    private readonly bool _preferCode;
 
     public bool IsText => Kind == FileKind.Text && !IsLoading;
     public bool CanRender => RenderMode != RenderKind.None && IsText;
-    public bool IsCodeVisible => IsText && !IsRendered;
-    public bool IsRenderedVisible => IsText && IsRendered;
+    public bool IsCodeVisible => IsText && !IsRendered && !IsDiff;
+    public bool IsRenderedVisible => IsText && IsRendered && !IsDiff;
+    public bool IsDiffVisible => IsText && IsDiff;
     public bool IsImage => Kind == FileKind.Image;
     public bool IsNote => Kind is FileKind.Binary or FileKind.TooLarge or FileKind.Error;
     public bool CanEdit => Kind == FileKind.Text && !IsEditing && !IsLoading;
@@ -64,11 +68,31 @@ public sealed partial class OpenFileViewModel : TabViewModel, IDisposable
     public double HorizontalOffset { get; set; }
     public bool ViewStateSaved { get; set; }
     public double RenderedOffset { get; set; }
+    /// <summary>Line of the caret as the view last saw it, for back/forward navigation.</summary>
+    public int CaretLine { get; set; } = 1;
+
+    // ---- changes against the last commit (read-only, like all git here)
+
+    /// <summary>Gutter marks per line of <see cref="Document"/>; empty when unchanged or not under git.</summary>
+    public LineMark[] Marks { get; private set; } = Array.Empty<LineMark>();
+    /// <summary>The full diff, for the diff view; null when there is nothing to compare with.</summary>
+    public IReadOnlyList<DiffRow>? DiffRows { get; private set; }
+    [ObservableProperty] private bool _hasChanges;
+    [ObservableProperty] private string _diffStats = "";
+    public string? HeadText { get; private set; }
+    private GitChange _gitChange;
+    private string? _repoRoot, _repoPath, _headId;
+    private bool _gitKnown;
+    private CancellationTokenSource? _diffCts;
 
     /// <summary>Asks the view to scroll to (line, column) and select <c>length</c> characters.</summary>
     public event Action<int, int, int>? RevealRequested;
     /// <summary>The document was replaced from disk; the view should refresh highlighting/folding.</summary>
     public event Action? Reloaded;
+    /// <summary>New gutter marks / diff are ready.</summary>
+    public event Action? MarksChanged;
+    /// <summary>The reader picked the rendered (true) or code (false) view, to remember it for this file.</summary>
+    public event Action<bool>? ViewModeChosen;
 
     private Encoding _encoding = new UTF8Encoding(false);
     private DateTime _modified;
@@ -78,8 +102,9 @@ public sealed partial class OpenFileViewModel : TabViewModel, IDisposable
     private CancellationTokenSource? _analysisCts;
     private (int Line, int Col, int Len)? _pendingReveal;
 
-    public OpenFileViewModel(string root, string relPath)
+    public OpenFileViewModel(string root, string relPath, bool preferCode = false)
     {
+        _preferCode = preferCode;
         RelPath = relPath;
         FullPath = Path.Combine(root, relPath.Replace('/', Path.DirectorySeparatorChar));
         Language = Languages.For(FullPath);
@@ -103,11 +128,21 @@ public sealed partial class OpenFileViewModel : TabViewModel, IDisposable
 
     partial void OnKindChanged(FileKind value) => NotifyKind();
     partial void OnIsLoadingChanged(bool value) => NotifyKind();
-    partial void OnIsEditingChanged(bool value) { OnPropertyChanged(nameof(CanEdit)); UpdateTitle(); }
-    partial void OnIsRenderedChanged(bool value)
+    partial void OnIsEditingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CanEdit));
+        UpdateTitle();
+        // A file being edited must not be replaced by the next single-click open.
+        if (value) IsPreview = false;
+    }
+    partial void OnIsRenderedChanged(bool value) => NotifyViews();
+    partial void OnIsDiffChanged(bool value) => NotifyViews();
+
+    private void NotifyViews()
     {
         OnPropertyChanged(nameof(IsCodeVisible));
         OnPropertyChanged(nameof(IsRenderedVisible));
+        OnPropertyChanged(nameof(IsDiffVisible));
     }
     partial void OnIsDirtyChanged(bool value) => UpdateTitle();
     partial void OnOutlineChanged(IReadOnlyList<OutlineRowVM> value) => OnPropertyChanged(nameof(OutlineHeader));
@@ -120,8 +155,7 @@ public sealed partial class OpenFileViewModel : TabViewModel, IDisposable
         OnPropertyChanged(nameof(IsNote));
         OnPropertyChanged(nameof(CanEdit));
         OnPropertyChanged(nameof(CanRender));
-        OnPropertyChanged(nameof(IsCodeVisible));
-        OnPropertyChanged(nameof(IsRenderedVisible));
+        NotifyViews();
     }
 
     private void UpdateTitle() => Title = (IsDirty ? "● " : IsEditing ? "✎ " : "") + FileName;
@@ -144,10 +178,16 @@ public sealed partial class OpenFileViewModel : TabViewModel, IDisposable
                 _loadingText = true;
                 try
                 {
+                    LastChangeLine = 0;
                     if (keepView && Document.TextLength > 0)
                     {
                         // Replace in place so the caret and scroll position survive the reload.
-                        if (Document.Text != loaded.Text) Document.Replace(0, Document.TextLength, loaded.Text);
+                        var old = Document.Text;
+                        if (old != loaded.Text)
+                        {
+                            LastChangeLine = FirstDifferentLine(old, loaded.Text);
+                            Document.Replace(0, Document.TextLength, loaded.Text);
+                        }
                     }
                     else Document.Text = loaded.Text;
                     Document.UndoStack.ClearAll();
@@ -156,9 +196,10 @@ public sealed partial class OpenFileViewModel : TabViewModel, IDisposable
                 IsDirty = false;
                 if (!_renderDecided)
                 {
-                    // Documents open "compiled"; huge ones stay as code so the first paint is instant.
+                    // Documents open "compiled" unless the reader chose code for this one; huge ones stay as code
+                    // so the first paint is instant.
                     _renderDecided = true;
-                    IsRendered = RenderMode != RenderKind.None && _size <= 2 * 1024 * 1024;
+                    IsRendered = RenderMode != RenderKind.None && !_preferCode && _size <= 2 * 1024 * 1024;
                 }
                 ContentVersion++;
                 break;
@@ -188,6 +229,7 @@ public sealed partial class OpenFileViewModel : TabViewModel, IDisposable
         InfoText = Loc.F("file.info", FileLoader.FormatSize(_size), _modified);
         if (Kind == FileKind.Text)
         {
+            _ = UpdateDiffAsync(rereadHead: false);
             await AnalyzeNowAsync();
             Reloaded?.Invoke();
             if (_pendingReveal is { } r) { _pendingReveal = null; RevealRequested?.Invoke(r.Line, r.Col, r.Len); }
@@ -201,6 +243,17 @@ public sealed partial class OpenFileViewModel : TabViewModel, IDisposable
                 new MetricRow { Label = Loc.T("metric.modified"), Value = _modified == default ? "—" : _modified.ToString("yyyy-MM-dd HH:mm") },
             };
         }
+    }
+
+    /// <summary>Line where the last reload from disk started to differ (0 = first load or no change).</summary>
+    public int LastChangeLine { get; private set; }
+
+    private static int FirstDifferentLine(string a, string b)
+    {
+        int n = Math.Min(a.Length, b.Length), i = 0, line = 1;
+        for (; i < n && a[i] == b[i]; i++)
+            if (a[i] == '\n') line++;
+        return line;
     }
 
     /// <summary>Called by the project watcher when this file changed on disk.</summary>
@@ -247,6 +300,95 @@ public sealed partial class OpenFileViewModel : TabViewModel, IDisposable
         Outline = a.Outline.Select(o => new OutlineRowVM { Item = o }).ToList();
         Markers = a.Markers.Select(m => new MarkerRowVM { Tag = m.Tag, Text = m.Text, Line = m.Line }).ToList();
         Metrics = BuildMetrics(a);
+        if (IsEditing) _ = UpdateDiffAsync(rereadHead: false);
+    }
+
+    // ------------------------------------------------------------ changes against the last commit
+
+    /// <summary>
+    /// Called by the project after every git refresh. The committed text is read again only when HEAD moved or the
+    /// file changed state; files git sees as unchanged need no process at all.
+    /// </summary>
+    public void SetGitBase(string? repoRoot, string? repoPath, GitChange change, string? headId)
+    {
+        bool reread = !_gitKnown || repoRoot != _repoRoot || repoPath != _repoPath || headId != _headId
+                      || (change != _gitChange && HeadText is null);
+        _gitKnown = true;
+        _repoRoot = repoRoot;
+        _repoPath = repoPath;
+        _headId = headId;
+        var old = _gitChange;
+        _gitChange = change;
+        if (reread || old != change) _ = UpdateDiffAsync(reread);
+    }
+
+    private async Task UpdateDiffAsync(bool rereadHead)
+    {
+        if (!_gitKnown || Kind != FileKind.Text || IsLoading) return;
+        _diffCts?.Cancel();
+        var cts = _diffCts = new CancellationTokenSource();
+        try
+        {
+            var change = _gitChange;
+            if (change is GitChange.Ignored || _repoRoot is null || _repoPath is null)
+            {
+                HeadText = null;
+                SetDiff(null, Array.Empty<LineMark>());
+                return;
+            }
+            if (change is GitChange.Untracked or GitChange.Added)
+            {
+                // New to git: every line is new.
+                HeadText = null;
+                SetDiff(null, LineDiff.AllAdded(Document.LineCount));
+                return;
+            }
+            if (change == GitChange.None && !IsEditing)
+            {
+                // git says the file matches HEAD: nothing to mark, and the committed text is the file itself.
+                HeadText = Document.Text;
+                SetDiff(null, Array.Empty<LineMark>());
+                return;
+            }
+            if (rereadHead || HeadText is null)
+            {
+                var path = _repoPath;
+                HeadText = await GitStatus.ReadHeadTextAsync(_repoRoot, path, cts.Token);
+                if (cts.IsCancellationRequested) return;
+            }
+            if (HeadText is null) { SetDiff(null, Array.Empty<LineMark>()); return; }
+            var head = HeadText;
+            var now = Document.Text;
+            int lines = Document.LineCount;
+            var (rows, marks) = await Task.Run(() =>
+            {
+                var r = LineDiff.Compute(head, now);
+                return (r, LineDiff.Marks(r, lines));
+            }, cts.Token);
+            if (cts.IsCancellationRequested) return;
+            SetDiff(rows, marks);
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private void SetDiff(IReadOnlyList<DiffRow>? rows, LineMark[] marks)
+    {
+        DiffRows = rows;
+        Marks = marks;
+        int added = rows?.Count(r => r.Kind == DiffKind.Added) ?? marks.Count(m => m != LineMark.None);
+        int removed = rows?.Count(r => r.Kind == DiffKind.Removed) ?? 0;
+        HasChanges = rows is not null && (added > 0 || removed > 0);
+        DiffStats = added + removed > 0 ? $"+{added} −{removed}" : "";
+        if (!HasChanges && IsDiff) IsDiff = false;
+        MarksChanged?.Invoke();
+    }
+
+    /// <summary>The first changed line, so following an agent lands where it just wrote.</summary>
+    public int FirstChangedLine()
+    {
+        for (int i = 0; i < Marks.Length; i++)
+            if (Marks[i] != LineMark.None) return i + 1;
+        return 0;
     }
 
     private List<MetricRow> BuildMetrics(FileAnalysis a)
@@ -287,17 +429,34 @@ public sealed partial class OpenFileViewModel : TabViewModel, IDisposable
     {
         if (!CanEdit) return;
         IsRendered = false;
+        IsDiff = false;
         IsEditing = true;
     }
 
     [RelayCommand]
     private void ShowRendered()
     {
-        if (CanRender && !IsEditing) IsRendered = true;
+        if (!CanRender || IsEditing) return;
+        IsDiff = false;
+        IsRendered = true;
+        ViewModeChosen?.Invoke(true);
     }
 
     [RelayCommand]
-    private void ShowCode() => IsRendered = false;
+    private void ShowCode()
+    {
+        IsDiff = false;
+        IsRendered = false;
+        if (CanRender) ViewModeChosen?.Invoke(false);
+    }
+
+    /// <summary>Toggles the diff against the last commit (it can be opened while editing, to compare).</summary>
+    [RelayCommand]
+    private void ToggleDiff()
+    {
+        if (!HasChanges && !IsDiff) return;
+        IsDiff = !IsDiff;
+    }
 
     [RelayCommand] private Task Save() => SaveAsync();
 
@@ -356,6 +515,7 @@ public sealed partial class OpenFileViewModel : TabViewModel, IDisposable
     public void Dispose()
     {
         _analysisCts?.Cancel();
+        _diffCts?.Cancel();
         Image?.Dispose();
     }
 }

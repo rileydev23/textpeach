@@ -13,12 +13,21 @@ public sealed partial class ViewerSettings : ObservableObject
     [ObservableProperty] private double _fontSize;
     [ObservableProperty] private bool _wordWrap;
     [ObservableProperty] private bool _showWhitespace;
+    /// <summary>Diff view layout: the two versions side by side, or one column.</summary>
+    [ObservableProperty] private bool _diffSideBySide;
 
     public ViewerSettings(ProjectStore store)
     {
         _store = store;
         _fontSize = Math.Clamp(store.State.FontSize, MinFontSize, MaxFontSize);
         _wordWrap = store.State.WordWrap;
+        _diffSideBySide = store.State.DiffSideBySide;
+    }
+
+    partial void OnDiffSideBySideChanged(bool value)
+    {
+        _store.State.DiffSideBySide = value;
+        _store.Save();
     }
 
     partial void OnFontSizeChanged(double value)

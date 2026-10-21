@@ -26,6 +26,17 @@ public sealed class ProjectSession
 {
     public List<string> Files { get; set; } = new();
     public string? Active { get; set; }
+    /// <summary>The file in the preview tab (opened with one click, replaced by the next one).</summary>
+    public string? Preview { get; set; }
+}
+
+/// <summary>Per-project choices that outlive the open tabs.</summary>
+public sealed class ProjectPrefs
+{
+    /// <summary>Files (relative) the reader switched to the code view; the rest of the documents open rendered.</summary>
+    public List<string> CodeView { get; set; } = new();
+    /// <summary>Lines of <see cref="IgnoreRules"/>: extra folders to leave out, or "!name" to show a default one.</summary>
+    public List<string> Ignore { get; set; } = new();
 }
 
 public sealed class AppState
@@ -37,6 +48,7 @@ public sealed class AppState
     public List<string> OpenTabs { get; set; } = new();
     public string? ActiveTab { get; set; }
     public Dictionary<string, ProjectSession> Sessions { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<string, ProjectPrefs> Prefs { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public double Width { get; set; }
     public double Height { get; set; }
     public int? X { get; set; }
@@ -44,6 +56,8 @@ public sealed class AppState
     public bool Maximized { get; set; }
     public double FontSize { get; set; } = 13;
     public bool WordWrap { get; set; }
+    /// <summary>Diff view: both versions side by side (true) or one column (false).</summary>
+    public bool DiffSideBySide { get; set; } = true;
     /// <summary>Interface language: "en", "es" or null to follow Windows.</summary>
     public string? Language { get; set; }
 }
@@ -81,6 +95,7 @@ public sealed class ProjectStore
         }
         // The deserializer builds a case-sensitive dictionary; paths on Windows are not.
         State.Sessions = new Dictionary<string, ProjectSession>(State.Sessions, StringComparer.OrdinalIgnoreCase);
+        State.Prefs = new Dictionary<string, ProjectPrefs>(State.Prefs, StringComparer.OrdinalIgnoreCase);
     }
 
     public void Save()
@@ -119,7 +134,14 @@ public sealed class ProjectStore
         State.Projects.Remove(e);
         State.OpenTabs.RemoveAll(t => string.Equals(t, e.Path, StringComparison.OrdinalIgnoreCase));
         State.Sessions.Remove(e.Path);
+        State.Prefs.Remove(e.Path);
         Save();
+    }
+
+    public ProjectPrefs PrefsFor(string projectPath)
+    {
+        if (!State.Prefs.TryGetValue(projectPath, out var p)) State.Prefs[projectPath] = p = new ProjectPrefs();
+        return p;
     }
 
     public void Touch(ProjectEntry e)

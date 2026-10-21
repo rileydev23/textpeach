@@ -45,7 +45,7 @@ public sealed class RenderedDocument
 public static class DocumentRenderer
 {
     private const double BodySize = 14, BodyLineHeight = 22, CodeSize = 12.5;
-    private static readonly FontFamily Mono = new("Cascadia Mono, Consolas, Courier New");
+    private static readonly FontFamily Mono = new("Cascadia Mono, Consolas, Courier New, DejaVu Sans Mono, Liberation Mono");
     private static readonly IBrush LinkBrush = Palette.FromHex("#7db4ea");
     private static readonly IBrush InlineCodeBg = Palette.Panel2;
     private static readonly IBrush InlineCodeFg = Palette.Amber;

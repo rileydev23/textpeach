@@ -4,6 +4,7 @@
              xmlns:vm="using:TextPeach.ViewModels"
              xmlns:views="using:TextPeach.Views"
              xmlns:ae="using:AvaloniaEdit"
+             xmlns:ctl="using:TextPeach.Controls"
              x:Class="TextPeach.Views.ProjectView"
              x:DataType="vm:ProjectViewModel">
   <UserControl.KeyBindings>
@@ -21,6 +22,9 @@
     <KeyBinding Gesture="Ctrl+Subtract" Command="{Binding ZoomOutCommand}" />
     <KeyBinding Gesture="Ctrl+D0" Command="{Binding ZoomResetCommand}" />
     <KeyBinding Gesture="Alt+Z" Command="{Binding ToggleWrapCommand}" />
+    <KeyBinding Gesture="Alt+Left" Command="{Binding GoBackCommand}" />
+    <KeyBinding Gesture="Alt+Right" Command="{Binding GoForwardCommand}" />
+    <KeyBinding Gesture="Alt+D" Command="{Binding ToggleDiffCommand}" />
   </UserControl.KeyBindings>
 
   <DockPanel>
@@ -28,10 +32,19 @@
     <Border DockPanel.Dock="Top" Background="#26272b" BorderBrush="#3a3c42" BorderThickness="0,0,0,1" Padding="8,6">
       <DockPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
+          <ToggleButton Classes="follow" IsChecked="{Binding FollowChanges}" ToolTip.Tip="{l:L recent.follow.tip}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Ellipse Classes="live" Width="7" Height="7" VerticalAlignment="Center" />
+              <TextBlock Text="{l:L recent.follow}" VerticalAlignment="Center" />
+            </StackPanel>
+          </ToggleButton>
           <Button Content="{l:L pv.openDefault.short}" Command="{Binding OpenWithDefaultCommand}" IsEnabled="{Binding HasFile}"
                   ToolTip.Tip="{l:L pv.openDefault.tip}" />
         </StackPanel>
         <StackPanel Orientation="Horizontal" Spacing="4">
+          <Button Content="←" Command="{Binding GoBackCommand}" IsEnabled="{Binding CanGoBack}" ToolTip.Tip="{l:L nav.back.tip}" Padding="9,4" />
+          <Button Content="→" Command="{Binding GoForwardCommand}" IsEnabled="{Binding CanGoForward}" ToolTip.Tip="{l:L nav.forward.tip}" Padding="9,4" />
+          <Border Width="1" Background="#3a3c42" Margin="6,2" />
           <Button Content="{l:L pv.goToFile}" Command="{Binding QuickOpenFileCommand}" ToolTip.Tip="Ctrl+P" />
           <Button Content="{l:L pv.searchProject}" Command="{Binding FocusSearchCommand}" ToolTip.Tip="Ctrl+Shift+F" />
           <Button Content="{l:L pv.goToLine}" Command="{Binding GoToLineCommand}" IsEnabled="{Binding HasFile}" ToolTip.Tip="Ctrl+G" />
@@ -87,14 +100,20 @@
       <!-- Sidebar: explorer / search -->
       <Border Background="#222327">
         <DockPanel>
-          <Grid DockPanel.Dock="Top" ColumnDefinitions="*,*" Margin="0,0,0,2">
-            <Button Classes="seg" Classes.active="{Binding !IsSearchMode}" Content="{l:L pv.files}" Command="{Binding FocusFilterCommand}" />
+          <Grid DockPanel.Dock="Top" ColumnDefinitions="*,*,*" Margin="0,0,0,2">
+            <Button Classes="seg" Classes.active="{Binding IsFilesMode}" Content="{l:L pv.files}" Command="{Binding FocusFilterCommand}" />
             <Button Grid.Column="1" Classes="seg" Classes.active="{Binding IsSearchMode}" Content="{l:L pv.search}" Command="{Binding FocusSearchCommand}" />
+            <Button Grid.Column="2" Classes="seg" Classes.active="{Binding IsRecentMode}" Command="{Binding ShowRecentCommand}" ToolTip.Tip="{l:L recent.tip}">
+              <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center">
+                <TextBlock Text="{l:L recent.tab}" />
+                <Ellipse Width="6" Height="6" Fill="#e0a24a" VerticalAlignment="Center" IsVisible="{Binding HasRecent}" />
+              </StackPanel>
+            </Button>
           </Grid>
 
           <Panel>
           <!-- Explorer -->
-          <DockPanel IsVisible="{Binding !IsSearchMode}">
+          <DockPanel IsVisible="{Binding IsFilesMode}">
             <TextBox x:Name="FilterBox" DockPanel.Dock="Top" HorizontalAlignment="Stretch" Margin="6,4,6,6" Text="{Binding FileFilter}" Watermark="{l:L pv.filter}" />
             <Panel>
               <TreeView x:Name="FileTree" ItemsSource="{Binding Tree}" SelectedItem="{Binding SelectedNode}" IsVisible="{Binding !IsFiltering}">
@@ -176,6 +195,32 @@
               </ListBox.ItemTemplate>
             </ListBox>
           </DockPanel>
+
+          <!-- Files changed on disk while the project is open (an agent, a build, another editor) -->
+          <DockPanel IsVisible="{Binding IsRecentMode}">
+            <DockPanel DockPanel.Dock="Top" Margin="8,6,6,4">
+              <Button DockPanel.Dock="Right" Classes="flat" Content="{l:L recent.clear}" Command="{Binding ClearRecentCommand}"
+                      IsVisible="{Binding HasRecent}" Foreground="#8a8d93" Padding="4,0" />
+              <CheckBox IsChecked="{Binding FollowChanges}" Content="{l:L recent.followBox}" ToolTip.Tip="{l:L recent.follow.tip}" FontSize="12" />
+            </DockPanel>
+            <TextBlock DockPanel.Dock="Top" Classes="dim" FontSize="12" FontStyle="Italic" Text="{l:L recent.empty}" TextWrapping="Wrap"
+                       Margin="10,6" IsVisible="{Binding !HasRecent}" />
+            <ListBox x:Name="RecentList" ItemsSource="{Binding Recent}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:RecentChangeVM">
+                  <DockPanel Margin="8,3" ToolTip.Tip="{Binding RelPath}">
+                    <TextBlock DockPanel.Dock="Left" Text="{Binding KindText}" Foreground="{Binding KindBrush}" FontWeight="Bold" Width="12"
+                               VerticalAlignment="Center" ToolTip.Tip="{Binding KindTip}" />
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding AgoText}" Classes="dim" FontSize="11" VerticalAlignment="Center" Margin="6,0,0,0" />
+                    <StackPanel>
+                      <TextBlock Text="{Binding FileName}" FontSize="12" TextTrimming="CharacterEllipsis" Classes.gone="{Binding IsDeleted}" />
+                      <TextBlock Text="{Binding Directory}" Classes="dim" FontSize="11" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                  </DockPanel>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </DockPanel>
           </Panel>
         </DockPanel>
       </Border>
@@ -196,8 +241,9 @@
             </ListBox.ContextMenu>
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="vm:TabViewModel">
-                <StackPanel Orientation="Horizontal" Margin="10,5,4,5" Spacing="6" ToolTip.Tip="{Binding ToolTip}">
-                  <TextBlock Text="{Binding Title}" Foreground="{Binding TitleBrush}" FontSize="12" VerticalAlignment="Center" />
+                <StackPanel Orientation="Horizontal" Margin="10,5,4,5" Spacing="6" ToolTip.Tip="{Binding ToolTip}" Background="Transparent">
+                  <TextBlock Text="{Binding Title}" Foreground="{Binding TitleBrush}" FontSize="12" VerticalAlignment="Center"
+                             Classes.preview="{Binding IsPreview}" />
                   <Button Classes="flat" Content="✕" Command="{Binding CloseCommand}"
                           IsVisible="{Binding Closable}" FontSize="9" Padding="4,1"
                           Foreground="#8a8d93" VerticalAlignment="Center" />
@@ -216,9 +262,16 @@
               <Border DockPanel.Dock="Top" Background="#26272b" BorderBrush="#3a3c42" BorderThickness="0,0,0,1" Padding="10,5">
                 <DockPanel>
                   <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
+                    <ToggleButton Classes="diff" IsChecked="{Binding IsDiff, Mode=OneWay}" Command="{Binding ToggleDiffCommand}"
+                                  IsVisible="{Binding HasChanges}" ToolTip.Tip="{l:L diff.tip}" Margin="0,0,6,0">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="{l:L diff.button}" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding DiffStats}" Classes="dim" FontSize="11" VerticalAlignment="Center" />
+                      </StackPanel>
+                    </ToggleButton>
                     <StackPanel Orientation="Horizontal" IsVisible="{Binding CanRender}" Margin="0,0,6,0">
-                      <Button Classes="mode left" Classes.active="{Binding IsRendered}" Content="{l:L pv.rendered}" Command="{Binding ShowRenderedCommand}" ToolTip.Tip="{l:L pv.rendered.tip}" />
-                      <Button Classes="mode right" Classes.active="{Binding !IsRendered}" Content="{l:L pv.code}" Command="{Binding ShowCodeCommand}" ToolTip.Tip="{l:L pv.code.tip}" />
+                      <Button Classes="mode left" Classes.active="{Binding IsRenderedVisible}" Content="{l:L pv.rendered}" Command="{Binding ShowRenderedCommand}" ToolTip.Tip="{l:L pv.rendered.tip}" />
+                      <Button Classes="mode right" Classes.active="{Binding IsCodeVisible}" Content="{l:L pv.code}" Command="{Binding ShowCodeCommand}" ToolTip.Tip="{l:L pv.code.tip}" />
                     </StackPanel>
                     <Button Classes="warn" Content="{l:L pv.edit}" Command="{Binding EditCommand}" IsVisible="{Binding CanEdit}" ToolTip.Tip="{l:L pv.edit.tip}" />
                     <Button Classes="accent" Content="{l:L common.save}" Command="{Binding SaveCommand}" IsVisible="{Binding IsEditing}" ToolTip.Tip="Ctrl+S" />
@@ -237,16 +290,16 @@
                       </Button.Flyout>
                     </Button>
                   </StackPanel>
-                  <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" ClipToBounds="True">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" ToolTip.Tip="{Binding FullPath}">
+                  <DockPanel VerticalAlignment="Center" ClipToBounds="True">
+                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center" ToolTip.Tip="{Binding FullPath}">
                       <TextBlock Text="{Binding Directory}" Classes="dim" />
                       <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" />
                     </StackPanel>
-                    <Border Background="#2d2e33" BorderBrush="#3a3c42" BorderThickness="1" CornerRadius="3" Padding="6,0" VerticalAlignment="Center">
+                    <Border DockPanel.Dock="Left" Margin="10,0" Background="#2d2e33" BorderBrush="#3a3c42" BorderThickness="1" CornerRadius="3" Padding="6,0" VerticalAlignment="Center">
                       <TextBlock Text="{Binding LanguageName}" Foreground="{Binding LanguageBrush}" FontSize="11" />
                     </Border>
-                    <TextBlock Text="{Binding InfoText}" Classes="dim" FontSize="11" VerticalAlignment="Center" />
-                  </StackPanel>
+                    <TextBlock Text="{Binding InfoText}" Classes="dim" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding InfoText}" />
+                  </DockPanel>
                 </DockPanel>
               </Border>
 
@@ -263,8 +316,13 @@
               </Border>
 
               <Panel>
-                <ae:TextEditor x:Name="Editor" IsVisible="{Binding IsCodeVisible}" ShowLineNumbers="True" IsReadOnly="True"
-                               HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" />
+                <DockPanel IsVisible="{Binding IsCodeVisible}">
+                  <!-- Whole file at scale: git changes, search matches and the caret -->
+                  <ctl:OverviewRuler x:Name="Ruler" DockPanel.Dock="Right" />
+                  <ae:TextEditor x:Name="Editor" ShowLineNumbers="True" IsReadOnly="True"
+                                 HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" />
+                </DockPanel>
+                <ctl:DiffView x:Name="Diff" IsVisible="{Binding IsDiffVisible}" />
                 <ScrollViewer x:Name="RenderedHost" IsVisible="{Binding IsRenderedVisible}" Background="#1e1f22"
                               HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" />
                 <Grid IsVisible="{Binding IsImage}" RowDefinitions="*,Auto" Background="#1b1c1f">

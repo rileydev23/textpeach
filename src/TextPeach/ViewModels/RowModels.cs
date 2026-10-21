@@ -17,6 +17,8 @@ public sealed partial class FileNode : ObservableObject
     public bool IsPlaceholder { get; init; }
     /// <summary>The project's git state, shared by every node; null when the project is not a repository.</summary>
     public GitDecorations? Git { get; init; }
+    /// <summary>The project's folder rules, shared like <see cref="Git"/>.</summary>
+    public IgnoreRules Rules { get; init; } = IgnoreRules.Default;
     public ObservableCollection<FileNode> Children { get; } = new();
 
     [ObservableProperty] private bool _isExpanded;
@@ -33,11 +35,11 @@ public sealed partial class FileNode : ObservableObject
     public bool HasStatus => StatusText.Length > 0;
     public string StatusTip => GitLook.Describe(Change) is { Length: > 0 } d ? $"{RelPath} · {d}" : RelPath;
 
-    public static FileNode Create(string fullPath, string root, GitDecorations? git = null)
+    public static FileNode Create(string fullPath, string root, GitDecorations? git = null, IgnoreRules? rules = null)
     {
         bool dir = Directory.Exists(fullPath);
         var rel = Path.GetRelativePath(root, fullPath).Replace('\\', '/');
-        var node = new FileNode { Name = Path.GetFileName(fullPath), FullPath = fullPath, RelPath = rel, IsDirectory = dir, Git = git };
+        var node = new FileNode { Name = Path.GetFileName(fullPath), FullPath = fullPath, RelPath = rel, IsDirectory = dir, Git = git, Rules = rules ?? IgnoreRules.Default };
         node.Change = git?.For(rel, dir) ?? GitChange.None;
         if (dir) node.Children.Add(new FileNode { Name = "…", FullPath = "", RelPath = "", IsPlaceholder = true });
         return node;
@@ -54,7 +56,7 @@ public sealed partial class FileNode : ObservableObject
         _loaded = true;
         var root = FullPath[..^RelPath.Length].TrimEnd('\\', '/');
         Children.Clear();
-        foreach (var n in ListChildren(FullPath, root, Git)) Children.Add(n);
+        foreach (var n in ListChildren(FullPath, root, Git, Rules)) Children.Add(n);
     }
 
     /// <summary>Re-reads the git state of this node and of every loaded node below it.</summary>
@@ -65,18 +67,19 @@ public sealed partial class FileNode : ObservableObject
         if (_loaded) foreach (var c in Children) c.RefreshGit();
     }
 
-    public static List<FileNode> ListChildren(string dir, string root, GitDecorations? git = null)
+    public static List<FileNode> ListChildren(string dir, string root, GitDecorations? git = null, IgnoreRules? rules = null)
     {
         var result = new List<FileNode>();
+        rules ??= IgnoreRules.Default;
         try
         {
             foreach (var d in Directory.EnumerateDirectories(dir).OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase))
             {
-                if (ProjectScanner.IsSkipped(Path.GetFileName(d))) continue;
-                result.Add(Create(d, root, git));
+                if (rules.IsIgnoredDir(Path.GetRelativePath(root, d).Replace('\\', '/'))) continue;
+                result.Add(Create(d, root, git, rules));
             }
             foreach (var f in Directory.EnumerateFiles(dir).OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase))
-                result.Add(Create(f, root, git));
+                result.Add(Create(f, root, git, rules));
         }
         catch { /* inaccessible */ }
         return result;
@@ -144,6 +147,40 @@ public sealed class FileHit
     public string FileName => RelPath[(RelPath.LastIndexOf('/') + 1)..];
     public string Directory => RelPath.LastIndexOf('/') is var i and > 0 ? RelPath[..(i + 1)] : "";
     public IBrush GlyphBrush => Palette.FromHex(Languages.For(RelPath).Color);
+}
+
+public enum DiskChange { Created, Changed, Deleted }
+
+/// <summary>A file that changed on disk while the project was open (newest first in "Recent").</summary>
+public sealed partial class RecentChangeVM : ObservableObject
+{
+    public required string RelPath { get; init; }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(KindText), nameof(KindBrush), nameof(KindTip))]
+    private DiskChange _kind;
+    [ObservableProperty] private DateTime _when;
+    [ObservableProperty] private string _agoText = "";
+    [ObservableProperty] private int _count = 1;
+
+    public string FileName => RelPath[(RelPath.LastIndexOf('/') + 1)..];
+    public string Directory => RelPath.LastIndexOf('/') is var i and > 0 ? RelPath[..(i + 1)] : "";
+    public IBrush GlyphBrush => Palette.FromHex(Languages.For(RelPath).Color);
+    public string KindText => Kind switch { DiskChange.Created => "+", DiskChange.Deleted => "−", _ => "~" };
+    public IBrush KindBrush => Kind switch { DiskChange.Created => Palette.Green, DiskChange.Deleted => Palette.Red, _ => Palette.Amber };
+    public string KindTip => Loc.T(Kind switch { DiskChange.Created => "recent.created", DiskChange.Deleted => "recent.deleted", _ => "recent.changed" });
+    public bool IsDeleted => Kind == DiskChange.Deleted;
+
+    partial void OnKindChanged(DiskChange value) => OnPropertyChanged(nameof(IsDeleted));
+
+    public void UpdateAgo(DateTime now) => AgoText = Ago(now - When);
+
+    public static string Ago(TimeSpan t) => t.TotalSeconds switch
+    {
+        < 10 => Loc.T("recent.now"),
+        < 60 => Loc.F("recent.seconds", (int)t.TotalSeconds),
+        < 3600 => Loc.F("recent.minutes", (int)t.TotalMinutes),
+        _ => Loc.F("recent.hours", (int)t.TotalHours),
+    };
 }
 
 public enum SearchRowKind { FileHeader, Match, Note }

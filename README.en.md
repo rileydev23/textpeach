@@ -5,7 +5,7 @@
 <h1 align="center">TextPeach</h1>
 
 <p align="center">
-  A code viewer and analyzer for Windows, <b>read-only</b> by design.<br/>
+  A code viewer and analyzer for Windows and Linux, <b>read-only</b> by design.<br/>
   Open project folders, browse them, read the code with syntax colors, see its structure, metrics and git state, and search the whole project, with no fear of changing anything by accident.
 </p>
 
@@ -46,6 +46,7 @@
 - [Building from source](#building-from-source)
 - [Repository layout](#repository-layout)
 - [Contributing](#contributing)
+- [Versions and releases](#versions-and-releases)
 - [License and credits](#license-and-credits)
 
 ---
@@ -111,15 +112,17 @@ It is a single portable `.exe`: no installer, no accounts, no internet connectio
 
 ## Requirements
 
-- **To use it:** 64-bit Windows 10 or 11. No .NET installation needed (the executable is self-contained).
+- **To use it:** 64-bit Windows 10 or 11, or Linux x64 with a desktop (X11 or XWayland). No .NET installation
+  needed (the executable is self-contained).
 - **To see the git state:** [Git for Windows](https://git-scm.com/download/win) on the `PATH` (or in its
-  usual install folder). Without git, TextPeach works the same, just without that information.
+  usual install folder); on Linux, your distribution's `git`. Without git, TextPeach works the same, just without that information.
 - **To build it:** the [.NET 10 SDK](https://dotnet.microsoft.com/download).
 
 ## Installation
 
-1. Download `TextPeach.exe` from the repository's *Releases* (or build it, see
-   [Building from source](#building-from-source)).
+1. Download `TextPeach.exe` (Windows) or `TextPeach-linux-x64.tar.gz` (Linux) from the repository's
+   *Releases* (or build it, see [Building from source](#building-from-source)). On Linux, unpack it with
+   `tar -xzf TextPeach-linux-x64.tar.gz`.
 2. Put it in any folder and run it. There is no installer.
 3. *(Optional)* **Portable mode:** create an empty `portable.txt` file next to the `.exe` and the data will
    be stored in `.\data\` instead of your profile.
@@ -367,8 +370,8 @@ structure, `FileAnalyzer.cs`.
 
 Others: structure and metrics are heuristics (regex), not semantic analysis; brace folding does not
 understand every string literal of every language; deleted files don't show up in the tree (they are not on
-disk); changing the language needs a restart; only Windows x64 builds are published (Avalonia is
-cross-platform, so porting it is possible).
+disk); changing the language needs a restart; only Windows x64 and Linux x64 builds are published (on
+Linux the system title bar is used).
 
 ## Building from source
 
@@ -380,6 +383,9 @@ dev.cmd                       :: build in Debug and run
 dotnet test TextPeach.sln     :: run the tests
 build.cmd                     :: produce dist\TextPeach.exe (single-file, self-contained, win-x64)
 ```
+
+On Linux, `./build.sh` produces `dist/TextPeach` (linux-x64). Both take an optional version
+(`build.cmd 0.4.0`) that is stamped into the executable.
 
 `build.cmd` publishes with ReadyToRun and compression, without *trimming* (TextMate grammars are loaded
 through reflection). The first build downloads the NuGet packages.
@@ -412,10 +418,11 @@ More detail in [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md). The visual rules li
 
 ## Contributing
 
-Contributions are welcome!
+Contributions are welcome! The full guide is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 1. Open an *issue* describing the problem or the idea (with screenshots if it is visual).
-2. *Fork* the repository, create a branch and send a small, focused *pull request*.
+2. *Fork* the repository, create a `feature/…`, `fix/…`, `docs/…`, `refactor/…` or `chore/…` branch and send
+   a small, focused *pull request* against `main`.
 3. Before sending it: `dotnet build` with no errors and `dotnet test` green. If you add pure logic
    (analyzer, parsers, groups…), add tests.
 
@@ -430,21 +437,53 @@ Conventions:
 - Keep TextPeach read-only by default: any action that writes to disk must be explicit, and git is only
   read.
 
+## Versions and releases
+
+TextPeach is at **0.x**: it is usable every day, but it can still change quite a bit. **1.0.0** will come once
+the app is stable and has its final icon.
+
+Versions follow [SemVer](https://semver.org) (`MAJOR.MINOR.PATCH`) and the repository uses *GitHub Flow*: a
+single main branch, `main`, with no intermediate branches (`develop`, `release/…`).
+
+```
+feature/thing ──PR──┐
+fix/other ─────PR───┼──▶ main ──(when the maintainer decides)──▶ release v0.4.0 (Windows + Linux)
+docs/stuff ────PR───┘
+```
+
+1. **Every change lives in its own branch** (`feature/…`, `fix/…`, `docs/…`, `refactor/…`, `chore/…`) and
+   reaches `main` through a reviewed *pull request* with green CI. Nobody pushes straight to `main`.
+2. **Every merge updates a draft of the next release** with the notes grouped by kind. The version is worked
+   out from the branches: any `feature/` raises the minor version (0.3.2 → 0.4.0), otherwise the patch
+   (0.3.2 → 0.3.3).
+3. **A merge is not a release.** Several pull requests can pile up in the draft, and it is published when
+   there is something worth shipping. Publishing it creates the `vX.Y.Z` tag, and a workflow
+   runs the tests, builds `TextPeach.exe` and `TextPeach-linux-x64.tar.gz` with that version, checks that both
+   start, and attaches them to the release.
+4. While on 0.x, breaking changes also raise only the minor version. For **1.0.0**, the maintainer changes the
+   draft's version by hand right before publishing it.
+
+`main` must always build and pass the tests: every release is cut from it.
+
 ## License and credits
 
-TextPeach uses the **[TextPeach License](LICENSE)** (source-available, not a standard open-source license).
-In short:
+Copyright © 2026 [rileydev23](https://github.com/rileydev23). TextPeach is free software under the
+**[GNU General Public License v3.0](LICENSE)** or later (GPL-3.0-or-later), the same license as the whole Peach
+family. In short:
 
-- **Using it as is is free for everyone**, companies and commercial use included, as long as it is not
-  modified, the credits stay and it is updated to the official releases.
-- **Making your own version** (personal, not sold) is allowed with visible credit ("Based on TextPeach by
-  rileydev23"), keeping this license and without using the TextPeach name or logo as your own.
-- **Corporate versions** (a company or organization that modifies, adapts or rebrands TextPeach, even for
-  internal use) or **paid versions** require getting in touch first: they come with an agreement for
-  royalties or a fixed fee.
+- **Use it for free, for anything**, companies and commercial use included.
+- **You can study it, change it and share your version**, as long as it is GPLv3 too, with its source code
+  available and the copyright notices kept. Nobody can take it and ship it as closed software.
+- **Need a closed version** or to embed it in a proprietary product? Contact
+  [rileydev23](https://github.com/rileydev23) for a commercial license.
 
-The idea is simple: everyone can use it, but nobody should take other people's work for free and make it
-their own. The binding text is the one in [LICENSE](LICENSE).
+**Name and logo:** the GPL covers the code, not the brand. "TextPeach" and its logo identify the official
+version; if you publish a fork, give it another name and logo.
+
+**About the icon:** the current icon was made with AI. If you would like to propose a better one, made by a
+person, I am happy to change it! Open an *issue* with your proposal.
+
+The binding text is the one in [LICENSE](LICENSE).
 
 Built with:
 

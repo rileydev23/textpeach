@@ -163,7 +163,7 @@ public static class Dialogs
             foreach (var (gesture, desc) in items)
             {
                 var row = new Grid { ColumnDefinitions = new ColumnDefinitions("215,*") };
-                row.Children.Add(new TextBlock { Text = gesture, Foreground = Palette.Dim, FontSize = 12, FontFamily = new FontFamily("Cascadia Mono, Consolas") });
+                row.Children.Add(new TextBlock { Text = gesture, Foreground = Palette.Dim, FontSize = 12, FontFamily = new FontFamily("Cascadia Mono, Consolas, DejaVu Sans Mono") });
                 var d = new TextBlock { Text = desc, Foreground = Palette.Text, FontSize = 12, TextWrapping = TextWrapping.Wrap };
                 Grid.SetColumn(d, 1);
                 row.Children.Add(d);
@@ -265,6 +265,48 @@ public static class Dialogs
             else if (e.Key == Key.Enter) Accept();
         };
         w.Opened += (_, _) => { boxes[0].Focus(); boxes[0].SelectAll(); };
+        await w.ShowDialog(owner);
+        return result;
+    }
+
+    /// <summary>A list edited as text, one item per line (the project's ignored folders). Null when cancelled.</summary>
+    public static async Task<List<string>?> EditLines(string title, string explanation, string note, IEnumerable<string> lines)
+    {
+        var owner = Owner;
+        if (owner is null) return null;
+        var w = Make(title, 520);
+        List<string>? result = null;
+        var box = new TextBox
+        {
+            Text = string.Join(Environment.NewLine, lines),
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.NoWrap,
+            Height = 180,
+            FontFamily = new FontFamily("Cascadia Mono, Consolas, DejaVu Sans Mono"),
+            FontSize = 12,
+        };
+        var okBtn = Btn(Loc.T("common.save"), true);
+        var cancel = Btn(Loc.T("common.cancel"));
+        okBtn.Click += (_, _) =>
+        {
+            result = (box.Text ?? "").Split('\n').Select(l => l.TrimEnd('\r')).ToList();
+            w.Close();
+        };
+        cancel.Click += (_, _) => w.Close();
+        w.Content = new StackPanel
+        {
+            Margin = new Thickness(18), Spacing = 10,
+            Children =
+            {
+                new TextBlock { Text = explanation, TextWrapping = TextWrapping.Wrap, Foreground = Palette.Text },
+                box,
+                new TextBlock { Text = note, TextWrapping = TextWrapping.Wrap, Foreground = Palette.Dim, FontSize = 11 },
+                new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 6, 0, 0),
+                    HorizontalAlignment = HorizontalAlignment.Right, Children = { okBtn, cancel } },
+            },
+        };
+        w.KeyDown += (_, e) => { if (e.Key == Key.Escape) w.Close(); };
+        w.Opened += (_, _) => box.Focus();
         await w.ShowDialog(owner);
         return result;
     }
