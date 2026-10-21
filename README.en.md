@@ -412,10 +412,11 @@ More detail in [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md). The visual rules li
 
 ## Contributing
 
-Contributions are welcome!
+Contributions are welcome! The full guide is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 1. Open an *issue* describing the problem or the idea (with screenshots if it is visual).
-2. *Fork* the repository, create a branch and send a small, focused *pull request*.
+2. *Fork* the repository, create a `feature/…`, `fix/…`, `docs/…`, `refactor/…` or `chore/…` branch and send
+   a small, focused *pull request* against `main`.
 3. Before sending it: `dotnet build` with no errors and `dotnet test` green. If you add pure logic
    (analyzer, parsers, groups…), add tests.
 
@@ -432,19 +433,20 @@ Conventions:
 
 ## License and credits
 
-TextPeach uses the **[TextPeach License](LICENSE)** (source-available, not a standard open-source license).
-In short:
+Copyright © 2026 [rileydev23](https://github.com/rileydev23). TextPeach is free software under the
+**[GNU General Public License v3.0](LICENSE)** or later (GPL-3.0-or-later), the same license as the whole Peach
+family. In short:
 
-- **Using it as is is free for everyone**, companies and commercial use included, as long as it is not
-  modified, the credits stay and it is updated to the official releases.
-- **Making your own version** (personal, not sold) is allowed with visible credit ("Based on TextPeach by
-  rileydev23"), keeping this license and without using the TextPeach name or logo as your own.
-- **Corporate versions** (a company or organization that modifies, adapts or rebrands TextPeach, even for
-  internal use) or **paid versions** require getting in touch first: they come with an agreement for
-  royalties or a fixed fee.
+- **Use it for free, for anything**, companies and commercial use included.
+- **You can study it, change it and share your version**, as long as it is GPLv3 too, with its source code
+  available and the copyright notices kept. Nobody can take it and ship it as closed software.
+- **Need a closed version** or to embed it in a proprietary product? Contact
+  [rileydev23](https://github.com/rileydev23) for a commercial license.
 
-The idea is simple: everyone can use it, but nobody should take other people's work for free and make it
-their own. The binding text is the one in [LICENSE](LICENSE).
+**Name and logo:** the GPL covers the code, not the brand. "TextPeach" and its logo identify the official
+version; if you publish a fork, give it another name and logo.
+
+The binding text is the one in [LICENSE](LICENSE).
 
 Built with:
 

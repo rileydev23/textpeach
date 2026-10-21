@@ -419,10 +419,11 @@ Más detalle en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md). Las reglas visuale
 
 ## Contribuir
 
-¡Las contribuciones son bienvenidas!
+¡Las contribuciones son bienvenidas! La guía completa está en [CONTRIBUTING.md](CONTRIBUTING.md).
 
 1. Abre un *issue* describiendo el problema o la propuesta (con capturas si es algo visual).
-2. Haz un *fork*, crea una rama y envía un *pull request* pequeño y enfocado.
+2. Haz un *fork*, crea una rama `feature/…`, `fix/…`, `docs/…`, `refactor/…` o `chore/…` y envía un
+   *pull request* pequeño y enfocado contra `main`.
 3. Antes de enviarlo: `dotnet build` sin errores y `dotnet test` en verde. Si añades lógica pura
    (analizador, parsers, grupos…), añade tests.
 
@@ -439,20 +440,21 @@ Convenciones:
 
 ## Licencia y créditos
 
-TextPeach usa la **[Licencia TextPeach](LICENSE)** (código visible, no es una licencia de código abierto
-estándar). En resumen:
+Copyright © 2026 [rileydev23](https://github.com/rileydev23). TextPeach es software libre bajo la
+**[GNU General Public License v3.0](LICENSE)** o posterior (GPL-3.0-or-later), la misma licencia de toda la
+familia Peach. En resumen:
 
-- **Usarlo tal cual es libre para todos**, también para empresas y con fines comerciales, siempre que no se
-  modifique, se dejen los créditos y se actualice a las versiones oficiales.
-- **Hacer tu propia versión** (personal, sin venderla) está permitido si se dan créditos visibles
-  ("Basado en TextPeach de rileydev23"), se mantiene esta licencia y no se usa el nombre ni el logo de
-  TextPeach como propios.
-- **Versiones corporativas** (una empresa u organización que modifica, adapta o rebautiza TextPeach, incluso
-  para uso interno) o **versiones de pago** requieren ponerse en contacto antes: llevan un acuerdo con
-  regalías o un monto fijo.
+- **Úsalo gratis para lo que quieras**, también en empresas y con fines comerciales.
+- **Puedes estudiarlo, modificarlo y compartir tu versión**, siempre que también sea GPLv3, con su código
+  fuente disponible y sin quitar los avisos de copyright. Nadie puede tomarlo y distribuirlo como software
+  cerrado.
+- **¿Necesitas una versión cerrada** o integrarlo en un producto propietario? Escribe a
+  [rileydev23](https://github.com/rileydev23) para una licencia comercial.
 
-La idea es simple: todos pueden usarlo, pero nadie debería apropiarse gratis del trabajo de otros. El texto
-que vale es el de [LICENSE](LICENSE).
+**Nombre y logo:** la GPL cubre el código, no la marca. "TextPeach" y su logo identifican a la versión
+oficial; si publicas un fork, ponle otro nombre y otro logo.
+
+El texto que vale es el de [LICENSE](LICENSE).
 
 Construido con:
 
