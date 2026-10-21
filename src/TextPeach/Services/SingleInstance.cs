@@ -9,7 +9,12 @@ namespace TextPeach.Services;
 /// </summary>
 public static class SingleInstance
 {
+#if DEBUG
+    // Debug runs never hand their paths to (or receive them from) the real build.
+    private static readonly string Id = "TextPeach-debug-" + Environment.UserName;
+#else
     private static readonly string Id = "TextPeach-" + Environment.UserName;
+#endif
     private static Mutex? _mutex;
 
     /// <summary>Raised on a background thread with the (absolute) paths another launch asked to open.</summary>

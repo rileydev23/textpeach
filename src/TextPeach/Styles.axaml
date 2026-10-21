@@ -15,8 +15,8 @@
     <SolidColorBrush x:Key="ToggleButtonBackgroundChecked" Color="#33507a" />
     <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPointerOver" Color="#3a5a88" />
     <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPressed" Color="#33507a" />
-    <!-- Scroll bars: slimmer than Fluent's default when they expand under the pointer. -->
-    <x:Double x:Key="ScrollBarSize">10</x:Double>
+    <!-- Scroll bars: 4 px everywhere (see the ScrollBar styles below). -->
+    <x:Double x:Key="ScrollBarSize">4</x:Double>
   </Styles.Resources>
 
   <Style Selector="Window">
@@ -153,26 +153,39 @@
     <Setter Property="Background" Value="#2d2e33" />
   </Style>
 
-  <!-- Tab strips (ListBox.tabstrip): the horizontal bar gets its own 4 px row under the tabs instead of
-       growing over them, has no arrow buttons, and the wheel scrolls sideways (Views/TabStrip.cs). -->
+  <!-- Scroll bars, everywhere: one slim 4 px bar in its own row/column (never on top of the content), no arrow
+       buttons, and it does not grow under the pointer. Tab strips (ListBox.tabstrip) also scroll sideways with
+       the wheel (Views/TabStrip.cs). -->
+  <Style Selector="ScrollViewer">
+    <Setter Property="AllowAutoHide" Value="False" />
+  </Style>
   <Style Selector="ListBox.tabstrip">
     <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
     <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Disabled" />
-    <Setter Property="ScrollViewer.AllowAutoHide" Value="False" />
   </Style>
-  <Style Selector="ListBox.tabstrip ScrollBar:horizontal">
+  <Style Selector="ScrollBar:horizontal">
     <Setter Property="MinHeight" Value="4" />
     <Setter Property="Height" Value="4" />
   </Style>
-  <Style Selector="ListBox.tabstrip ScrollBar:horizontal /template/ RepeatButton#PART_LineUpButton">
+  <Style Selector="ScrollBar:vertical">
+    <Setter Property="MinWidth" Value="4" />
+    <Setter Property="Width" Value="4" />
+  </Style>
+  <Style Selector="ScrollBar /template/ RepeatButton#PART_LineUpButton">
     <Setter Property="IsVisible" Value="False" />
   </Style>
-  <Style Selector="ListBox.tabstrip ScrollBar:horizontal /template/ RepeatButton#PART_LineDownButton">
+  <Style Selector="ScrollBar /template/ RepeatButton#PART_LineDownButton">
     <Setter Property="IsVisible" Value="False" />
   </Style>
-  <Style Selector="ListBox.tabstrip ScrollBar:horizontal /template/ Thumb">
+  <Style Selector="ScrollBar:horizontal /template/ Thumb">
     <Setter Property="Height" Value="4" />
     <Setter Property="MinWidth" Value="24" />
+    <Setter Property="CornerRadius" Value="2" />
+    <Setter Property="RenderTransform" Value="none" />
+  </Style>
+  <Style Selector="ScrollBar:vertical /template/ Thumb">
+    <Setter Property="Width" Value="4" />
+    <Setter Property="MinHeight" Value="24" />
     <Setter Property="CornerRadius" Value="2" />
     <Setter Property="RenderTransform" Value="none" />
   </Style>

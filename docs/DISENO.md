@@ -495,10 +495,11 @@ nada.
 
 ### 7.16 Barras de desplazamiento
 
-`ScrollBarSize` = 10 px (Fluent usa más): la barra sigue siendo una línea fina en reposo y al pasar el mouse
-crece solo hasta 10 px. En franjas de pestañas se usa `ListBox.tabstrip` ([7.5](#75-pestañas)), con barra fija
-de 4 px en su propia fila. Regla general: una barra nunca debe quedar encima de elementos clicables que
-estén pegados a su borde; si pasa, va en su propia fila (`AllowAutoHide=False`).
+**Una sola barra para todo** (listas, árbol, editor, documentos, diálogos y franjas de pestañas), definida en
+`Styles.axaml`: línea fija de **4 px** (`ScrollBarSize` = 4) con esquinas de 2 px, **sin flechas** y que **no
+crece** al pasar el mouse. Todo `ScrollViewer` usa `AllowAutoHide=False`, así la barra ocupa su propia fila o
+columna y nunca queda encima del contenido ni le roba clics. En franjas de pestañas (`ListBox.tabstrip`,
+[7.5](#75-pestañas)) la rueda del mouse además desplaza de lado. No se definen barras distintas por vista.
 
 ---
 
