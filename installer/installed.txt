@@ -1,0 +1,2 @@
+TextPeach was installed with its installer (TextPeach-Setup.exe on Windows, install.sh on Linux).
+Updates from inside the app keep this installation up to date. Do not delete this file.

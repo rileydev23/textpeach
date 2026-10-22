@@ -56,8 +56,11 @@
 11. **Lo que solo se lee nunca parece editable.** Texto informativo, mensajes, atajos y documentos se muestran
     con `TextBlock`/`SelectableTextBlock`: sin cursor, sin fondo de campo, sin borde de foco. `TextBox` es solo
     para escribir.
-12. **Portable y autocontenido.** Un único `.exe` sin instalador. Con un `portable.txt` al lado, los datos se
-    guardan junto al exe.
+12. **Portable y autocontenido.** Un único `.exe` que funciona sin instalar. Con un `portable.txt` al lado, los
+    datos se guardan junto al exe. El instalador (`TextPeach-Setup.exe`, `install.sh`) es opcional: copia ese
+    mismo exe a una carpeta del usuario, lo registra en el buscador del sistema y deja `installed.txt` al lado.
+13. **Actualizar no interrumpe.** Una versión nueva solo se nota como un botón **↑ x.y.z** junto al **?**; nada
+    se descarga sin confirmar en su popup (Actualizar y reiniciar / Ahora no / Omitir esta versión).
 
 ---
 
@@ -551,6 +554,9 @@ en la pestaña de vista previa, cada archivo que cambia y salta al cambio; nunca
 `state.json` guarda la app; en modo portable va en `.\data\`. `location.json` (`exe`, `version`, `lastRun`) se
 escribe cada vez que se abre una compilación Release, para que GitPeach y RestPeach la encuentren aunque se haya
 movido. "Acerca de" muestra la carpeta real y la abre.
+
+`state.json` también guarda la búsqueda de versiones (`CheckUpdates`, `LastUpdateCheck`, `LatestVersion`,
+`SkippedVersion`): como mucho una consulta a GitHub al día, y el botón reaparece al abrir sin volver a preguntar.
 
 ---
 

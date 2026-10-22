@@ -77,7 +77,8 @@ TextPeach flips the priority:
   structure (classes, methods, headings…), TODO/FIXME, encoding, indentation and line endings.
 - **It handles many projects at once,** in tabs and organized in groups.
 
-It is a single portable `.exe`: no installer, no accounts, no internet connection. In English and Spanish.
+It is a single portable `.exe` (or an installer, if you prefer), no accounts, and it only goes online to tell you
+about a new version. In English and Spanish.
 
 ## Screenshots
 
@@ -125,12 +126,27 @@ It is a single portable `.exe`: no installer, no accounts, no internet connectio
 
 ## Installation
 
-1. Download `TextPeach.exe` (Windows) or `TextPeach-linux-x64.tar.gz` (Linux) from the repository's
-   *Releases* (or build it, see [Building from source](#building-from-source)). On Linux, unpack it with
-   `tar -xzf TextPeach-linux-x64.tar.gz`.
-2. Put it in any folder and run it. There is no installer.
-3. *(Optional)* **Portable mode:** create an empty `portable.txt` file next to the `.exe` and the data will
-   be stored in `.\data\` instead of your profile.
+Download whichever you prefer from the repository's *Releases* (or build it, see
+[Building from source](#building-from-source)):
+
+- **Windows, installer:** `TextPeach-Setup.exe`. It installs for your user only (no administrator) into
+  `%LOCALAPPDATA%\Programs\TextPeach`, shows up in Start menu search and is uninstalled from
+  **Settings > Apps**.
+- **Windows, portable:** `TextPeach.exe`. Put it in any folder and run it.
+- **Linux:** `TextPeach-linux-x64.tar.gz`. Unpack it with `tar -xzf TextPeach-linux-x64.tar.gz` and run
+  `./TextPeach`, or `./install.sh` to install it for your user (no root): it goes to `~/.local/opt/textpeach`,
+  with a `textpeach` command and an entry in the app menu. To remove it, `~/.local/opt/textpeach/uninstall.sh`.
+
+*(Optional)* **Portable mode:** create an empty `portable.txt` file next to the `.exe` and the data will be stored
+in `.\data\` instead of your profile. Uninstalling never deletes your data.
+
+### Updates
+
+Once a day, when it opens, TextPeach asks GitHub whether there is a new version. If there is, a **↑ 1.2.0**
+button appears next to **?**; nothing else changes. Clicking it shows what is new and lets you choose
+**Update and restart**, **Not now** or **Skip this version**. Updating checks the download against its SHA-256,
+restarts TextPeach and reopens your tabs. If you used the installer, it updates by running the new installer
+silently. In **About** (F1) you can turn the automatic check off or check right away.
 
 Every time it starts, TextPeach writes where it is to `%APPDATA%\peachapps\TextPeach\location.json`. That way
 the other apps of the family (such as GitPeach) find it even if you move it: just open it once from its new
@@ -352,8 +368,9 @@ structure, `FileAnalyzer.cs`.
 
 ## Data, privacy and portable mode
 
-- TextPeach **never connects to the internet**, has no telemetry and no accounts. It only opens web links
-  when you click them (in your default browser).
+- TextPeach has no telemetry and no accounts. The only thing it does online is ask GitHub's public API for the
+  latest release, at most once a day (can be turned off in **About**), and download it if you ask. It sends
+  nothing about you. Web links open in your browser when you click them.
 - It keeps its state in `%APPDATA%\peachapps\TextPeach\state.json` (or in `.\data\` next to the exe with
   `portable.txt`): list of projects and groups, open tabs and files, window size/position, language and
   viewer preferences. The exact path is shown in **About** (F1).
