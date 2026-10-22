@@ -14,9 +14,9 @@ public class UpdaterTests
           "html_url": "https://github.com/rileydev23/textpeach/releases/tag/v0.2.0",
           "body": "## ✨ New / Novedades\n\n- Aviso de versión nueva (#3) @devrileywin\n",
           "assets": [
-            { "name": "TextPeach.exe", "browser_download_url": "https://example.com/TextPeach.exe", "digest": "sha256:ABC123" },
-            { "name": "TextPeach-Setup.exe", "browser_download_url": "https://example.com/TextPeach-Setup.exe", "digest": null },
-            { "name": "TextPeach-linux-x64.tar.gz", "browser_download_url": "https://example.com/TextPeach-linux-x64.tar.gz" }
+            { "name": "textpeach-windows-x64-portable.exe", "browser_download_url": "https://example.com/textpeach-windows-x64-portable.exe", "digest": "sha256:ABC123" },
+            { "name": "textpeach-windows-x64-setup.exe", "browser_download_url": "https://example.com/textpeach-windows-x64-setup.exe", "digest": null },
+            { "name": "textpeach-linux-x64.tar.gz", "browser_download_url": "https://example.com/textpeach-linux-x64.tar.gz" }
           ]
         }
         """;
@@ -40,30 +40,30 @@ public class UpdaterTests
     [Fact]
     public void NewerReleaseGivesTheAssetForThisComputer()
     {
-        var info = Updater.Parse(Release, new Version(0, 1, 1, 0), "TextPeach.exe");
+        var info = Updater.Parse(Release, new Version(0, 1, 1, 0), "textpeach-windows-x64-portable.exe");
         Assert.NotNull(info);
         Assert.Equal(new Version(0, 2, 0), info.Version);
-        Assert.Equal("https://example.com/TextPeach.exe", info.AssetUrl);
+        Assert.Equal("https://example.com/textpeach-windows-x64-portable.exe", info.AssetUrl);
         Assert.Equal("ABC123", info.Sha256);
         Assert.Contains("Aviso de versión nueva", info.Notes);
 
-        Assert.Null(Updater.Parse(Release, new Version(0, 1, 1), "TextPeach-Setup.exe")!.Sha256);
+        Assert.Null(Updater.Parse(Release, new Version(0, 1, 1), "textpeach-windows-x64-setup.exe")!.Sha256);
     }
 
     [Fact]
     public void SameOrOlderReleaseOrMissingAssetIsNoUpdate()
     {
-        Assert.Null(Updater.Parse(Release, new Version(0, 2, 0, 0), "TextPeach.exe"));
-        Assert.Null(Updater.Parse(Release, new Version(1, 0, 0), "TextPeach.exe"));
+        Assert.Null(Updater.Parse(Release, new Version(0, 2, 0, 0), "textpeach-windows-x64-portable.exe"));
+        Assert.Null(Updater.Parse(Release, new Version(1, 0, 0), "textpeach-windows-x64-portable.exe"));
         Assert.Null(Updater.Parse(Release, new Version(0, 1, 0), "TextPeach-arm64.exe"));
     }
 
     [Fact]
     public void AssetNamesMatchTheReleaseWorkflow()
     {
-        Assert.Equal("TextPeach.exe", Updater.AssetName(windows: true, installed: false));
-        Assert.Equal("TextPeach-Setup.exe", Updater.AssetName(windows: true, installed: true));
-        Assert.Equal("TextPeach-linux-x64.tar.gz", Updater.AssetName(windows: false, installed: true));
+        Assert.Equal("textpeach-windows-x64-portable.exe", Updater.AssetName(windows: true, installed: false));
+        Assert.Equal("textpeach-windows-x64-setup.exe", Updater.AssetName(windows: true, installed: true));
+        Assert.Equal("textpeach-linux-x64.tar.gz", Updater.AssetName(windows: false, installed: true));
     }
 
     [Fact]
@@ -72,7 +72,7 @@ public class UpdaterTests
         var dir = Directory.CreateTempSubdirectory("tp-update-").FullName;
         try
         {
-            var exe = Path.Combine(dir, "TextPeach.exe");
+            var exe = Path.Combine(dir, "textpeach-windows-x64-portable.exe");
             var fresh = exe + ".new";
             File.WriteAllText(exe, "old");
             File.WriteAllText(fresh, "new");
@@ -91,7 +91,7 @@ public class UpdaterTests
         var dir = Directory.CreateTempSubdirectory("tp-tar-").FullName;
         try
         {
-            var archive = Path.Combine(dir, "TextPeach-linux-x64.tar.gz");
+            var archive = Path.Combine(dir, "textpeach-linux-x64.tar.gz");
             using (var gz = new GZipStream(File.Create(archive), CompressionLevel.Fastest))
             using (var tar = new TarWriter(gz))
             {
