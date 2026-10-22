@@ -13,6 +13,7 @@ permissions:
 jobs:
   windows:
     runs-on: windows-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -46,7 +47,10 @@ jobs:
       - name: Check that the installer installs, registers and uninstalls
         shell: pwsh
         run: |
-          Start-Process dist\TextPeach-Setup.exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait
+          # Not Start-Process -Wait: it also waits for child processes, and the silent install leaves TextPeach running.
+          $setup = Start-Process dist\TextPeach-Setup.exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -PassThru
+          if (-not $setup.WaitForExit(300000)) { throw "The installer did not finish in 5 minutes" }
+          if ($setup.ExitCode -ne 0) { throw "The installer exited with code $($setup.ExitCode)" }
           $app = "$env:LOCALAPPDATA\Programs\TextPeach"
           $lnk = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\TextPeach.lnk"
           foreach ($f in "$app\TextPeach.exe", "$app\installed.txt", "$app\unins000.exe", $lnk) {
@@ -57,8 +61,10 @@ jobs:
           $p = Get-Process TextPeach -ErrorAction SilentlyContinue
           if (-not $p) { throw "TextPeach did not start after the silent install" }
           $p | Stop-Process -Force
-          Start-Process "$app\unins000.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES' -Wait
-          Start-Sleep -Seconds 3
+          # The uninstaller hands over to a copy of itself in %TEMP% and exits at once, so poll for the result.
+          Start-Process "$app\unins000.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES'
+          $deadline = (Get-Date).AddMinutes(2)
+          while (((Test-Path "$app\TextPeach.exe") -or (Test-Path $lnk)) -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 2 }
           if ((Test-Path "$app\TextPeach.exe") -or (Test-Path $lnk)) { throw "Uninstall left files behind" }
       - name: Attach them to the release
         env:
@@ -67,6 +73,7 @@ jobs:
 
   linux:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
