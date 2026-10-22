@@ -89,6 +89,11 @@ Es un único `.exe` portable, sin instalador, sin cuentas y sin conexión a inte
 | **Búsqueda:** en vivo, con mayúsculas, palabra completa, regex y *globs*. | **Resumen:** totales, lenguajes, archivos más extensos y marcadores. |
 
 <p align="center">
+  <img src="docs/img/diff.png" alt="Cambios de un archivo contra el último commit" /><br/>
+  <sub><b>Cambios (Alt+D):</b> el archivo contra el último commit, en una columna o lado a lado.</sub>
+</p>
+
+<p align="center">
   <img src="docs/img/about.png" width="420" alt="Acerca de TextPeach, con los atajos de teclado y el selector de idioma" /><br/>
   <sub><b>Acerca de (F1):</b> versión, atajos de teclado, idioma y carpeta de configuración.</sub>
 </p>

@@ -89,6 +89,11 @@ It is a single portable `.exe`: no installer, no accounts, no internet connectio
 | **Search:** live, with match case, whole word, regex and *globs*. | **Summary:** totals, languages, largest files and markers. |
 
 <p align="center">
+  <img src="docs/img/en/diff.png" alt="A file's changes against the last commit" /><br/>
+  <sub><b>Changes (Alt+D):</b> the file against the last commit, in one column or side by side.</sub>
+</p>
+
+<p align="center">
   <img src="docs/img/en/about.png" width="420" alt="About TextPeach, with keyboard shortcuts and the language switch" /><br/>
   <sub><b>About (F1):</b> version, keyboard shortcuts, language and settings folder.</sub>
 </p>
