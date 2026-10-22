@@ -131,7 +131,11 @@ Descarga lo que prefieras desde la sección *Releases* del repositorio (o compí
 
 - **Windows, con instalador:** `textpeach-windows-x64-setup.exe`. Se instala solo para tu usuario (no pide administrador)
   en `%LOCALAPPDATA%\Programs\TextPeach`, aparece al buscar en el menú Inicio y se desinstala desde
-  **Configuración > Aplicaciones**.
+  **Configuración > Aplicaciones**. Durante la instalación puedes elegir (vienen marcadas) agregar
+  **"Abrir con TextPeach"** al menú contextual de archivos y carpetas del Explorador, y registrar TextPeach para
+  los archivos de texto y código, para que aparezca en **"Abrir con"** y en **Configuración > Aplicaciones
+  predeterminadas**. Windows solo deja que tú elijas la aplicación predeterminada: al final del instalador
+  puedes marcar *Elegir TextPeach como aplicación predeterminada* y se abre esa página ya en TextPeach.
 - **Windows, portable:** `textpeach-windows-x64-portable.exe`. Ponlo en la carpeta que quieras y ejecútalo.
 - **Linux:** `textpeach-linux-x64.tar.gz`. Descomprímelo con `tar -xzf textpeach-linux-x64.tar.gz` y
   ejecuta `./TextPeach`, o `./install.sh` para instalarlo en tu usuario (sin root): queda en
@@ -348,8 +352,10 @@ TextPeach.exe [carpeta] [archivo] ...
 ```
 
 - Una **carpeta** se agrega a la lista (si no estaba) y se abre en una pestaña.
-- Un **archivo** se abre dentro del proyecto guardado que lo contiene; si no hay ninguno, se agrega su
-  carpeta como proyecto.
+- Un **archivo** se abre dentro del proyecto abierto que lo contiene; si no hay ninguno, se abre en una
+  **vista simple**: una pestaña solo con ese archivo (sin árbol, búsqueda ni resumen) y sin agregar nada a la
+  lista de proyectos, como al abrir un archivo suelto en VS Code. Es lo que pasa con doble clic en el
+  Explorador o con *Abrir con TextPeach*; el botón **Abrir carpeta** la convierte en el proyecto de su carpeta.
 - **Instancia única:** si TextPeach ya está abierto, la nueva ejecución le entrega las rutas por una
   *named pipe* local (solo del usuario actual), trae la ventana al frente y termina. Así otras aplicaciones
   pueden pedirle que abra un repositorio o un archivo sin duplicar ventanas.

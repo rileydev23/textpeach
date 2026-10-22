@@ -35,6 +35,7 @@ Icon=textpeach
 Terminal=false
 Categories=Development;TextEditor;Utility;
 Keywords=code;viewer;git;diff;
+MimeType=text/plain;text/markdown;text/x-log;text/csv;text/html;text/css;text/xml;application/xml;application/json;application/x-yaml;application/toml;text/javascript;application/javascript;application/typescript;text/x-csharp;text/x-java;text/x-python;text/x-script.python;text/x-go;text/x-rust;text/x-csrc;text/x-chdr;text/x-c++src;text/x-c++hdr;text/x-php;text/x-ruby;text/x-lua;text/x-sql;application/x-shellscript;text/x-shellscript;
 EOF
 
 command -v update-desktop-database >/dev/null && update-desktop-database -q "$data/applications" || true

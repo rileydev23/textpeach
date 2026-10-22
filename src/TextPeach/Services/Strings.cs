@@ -105,6 +105,8 @@ internal static class Strings
         // ---- project tab
         ["pv.openDefault.short"] = ("Open with default app", "Abrir con la app predeterminada"),
         ["pv.openDefault.tip"] = ("Opens the current file with the app the system associates with it", "Abre el archivo actual con la aplicación que el sistema tiene asociada"),
+        ["pv.openFolder"] = ("Open folder", "Abrir carpeta"),
+        ["pv.openFolder.tip"] = ("Opens the folder of this file as a project, with its tree, search and summary", "Abre la carpeta de este archivo como proyecto, con su árbol, búsqueda y resumen"),
         ["pv.goToFile"] = ("Go to file", "Ir a archivo"),
         ["pv.searchProject"] = ("Search project", "Buscar en proyecto"),
         ["pv.goToLine"] = ("Go to line", "Ir a línea"),

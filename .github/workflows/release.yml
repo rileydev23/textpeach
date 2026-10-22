@@ -56,6 +56,12 @@ jobs:
           foreach ($f in "$app\TextPeach.exe", "$app\installed.txt", "$app\unins000.exe", $lnk) {
             if (-not (Test-Path $f)) { throw "Missing after install: $f" }
           }
+          # Explorer integration: the context menu entries and one of the registered types.
+          $keys = 'HKCU:\Software\Classes\*\shell\TextPeach\command', 'HKCU:\Software\Classes\Directory\shell\TextPeach\command',
+                  'HKCU:\Software\Classes\Directory\Background\shell\TextPeach\command', 'HKCU:\Software\Classes\TextPeach.md\shell\open\command',
+                  'HKCU:\Software\TextPeach\Capabilities\FileAssociations'
+          foreach ($k in $keys) { if (-not (Test-Path -LiteralPath $k)) { throw "Missing after install: $k" } }
+          if ($null -eq (Get-ItemProperty 'HKCU:\Software\Classes\.md\OpenWithProgids').'TextPeach.md') { throw "TextPeach.md is not in .md\OpenWithProgids" }
           # The silent install opens TextPeach (that is how an update restarts it): it must still be running.
           Start-Sleep -Seconds 15
           $p = Get-Process TextPeach -ErrorAction SilentlyContinue
@@ -66,6 +72,7 @@ jobs:
           $deadline = (Get-Date).AddMinutes(2)
           while (((Test-Path "$app\TextPeach.exe") -or (Test-Path $lnk)) -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 2 }
           if ((Test-Path "$app\TextPeach.exe") -or (Test-Path $lnk)) { throw "Uninstall left files behind" }
+          foreach ($k in $keys) { if (Test-Path -LiteralPath $k) { throw "Uninstall left the registry entry $k" } }
       - name: Attach them to the release
         env:
           GH_TOKEN: ${{ github.token }}

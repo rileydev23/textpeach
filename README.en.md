@@ -131,7 +131,10 @@ Download whichever you prefer from the repository's *Releases* (or build it, see
 
 - **Windows, installer:** `textpeach-windows-x64-setup.exe`. It installs for your user only (no administrator) into
   `%LOCALAPPDATA%\Programs\TextPeach`, shows up in Start menu search and is uninstalled from
-  **Settings > Apps**.
+  **Settings > Apps**. During setup you can choose (ticked by default) to add **"Open with TextPeach"** to the
+  File Explorer context menu of files and folders, and to register TextPeach for text and code files, so it shows
+  up in **"Open with"** and in **Settings > Default apps**. Windows only lets you pick the default app yourself:
+  at the end of setup, tick *Choose TextPeach as the default app* and that page opens on TextPeach.
 - **Windows, portable:** `textpeach-windows-x64-portable.exe`. Put it in any folder and run it.
 - **Linux:** `textpeach-linux-x64.tar.gz`. Unpack it with `tar -xzf textpeach-linux-x64.tar.gz` and run
   `./TextPeach`, or `./install.sh` to install it for your user (no root): it goes to `~/.local/opt/textpeach`,
@@ -341,8 +344,10 @@ TextPeach.exe [folder] [file] ...
 ```
 
 - A **folder** is added to the list (if it wasn't there) and opened in a tab.
-- A **file** opens inside the saved project that contains it; if there is none, its folder is added as a
-  project.
+- A **file** opens inside the open project that contains it; if there is none, it opens in a **simple view**:
+  a tab with just that file (no tree, search or summary) that adds nothing to the project list, like opening a
+  loose file in VS Code. That is what a double click in File Explorer or *Open with TextPeach* does; the
+  **Open folder** button turns it into its folder's project.
 - **Single instance:** if TextPeach is already open, the new launch hands it the paths over a local *named
   pipe* (current user only), brings the window to the front and exits. That way other apps can ask it to open
   a repository or a file without duplicating windows.
