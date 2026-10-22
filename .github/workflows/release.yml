@@ -1,5 +1,5 @@
 # Publishing a release (from the draft kept by release-drafter.yml) builds TextPeach for Windows and Linux with the
-# release's version, checks that each build starts, builds the installers (TextPeach-Setup.exe and the install.sh in the
+# release's version, checks that each build starts, builds the installers (textpeach-windows-x64-setup.exe and the install.sh in the
 # Linux archive), checks that they install and uninstall, and attaches everything to the release.
 name: Release
 
@@ -48,7 +48,7 @@ jobs:
         shell: pwsh
         run: |
           # Not Start-Process -Wait: it also waits for child processes, and the silent install leaves TextPeach running.
-          $setup = Start-Process dist\TextPeach-Setup.exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -PassThru
+          $setup = Start-Process dist\textpeach-windows-x64-setup.exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -PassThru
           if (-not $setup.WaitForExit(300000)) { throw "The installer did not finish in 5 minutes" }
           if ($setup.ExitCode -ne 0) { throw "The installer exited with code $($setup.ExitCode)" }
           $app = "$env:LOCALAPPDATA\Programs\TextPeach"
@@ -69,7 +69,10 @@ jobs:
       - name: Attach them to the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" dist/TextPeach.exe dist/TextPeach-Setup.exe --clobber
+        # Descriptive names for the release; the exe itself (and the installed one) stays TextPeach.exe.
+        run: |
+          Copy-Item dist/TextPeach.exe dist/textpeach-windows-x64-portable.exe
+          gh release upload "${{ github.event.release.tag_name }}" dist/textpeach-windows-x64-portable.exe dist/textpeach-windows-x64-setup.exe --clobber
 
   linux:
     runs-on: ubuntu-latest
@@ -101,10 +104,10 @@ jobs:
           cp installer/linux/install.sh installer/linux/uninstall.sh installer/installed.txt dist/
           cp src/TextPeach/Assets/logo.png dist/textpeach.png
           chmod +x dist/install.sh dist/uninstall.sh
-          tar -czf TextPeach-linux-x64.tar.gz -C dist TextPeach install.sh uninstall.sh installed.txt textpeach.png
+          tar -czf textpeach-linux-x64.tar.gz -C dist TextPeach install.sh uninstall.sh installed.txt textpeach.png
       - name: Check that install.sh and uninstall.sh work
         run: |
-          mkdir -p /tmp/tp && tar -xzf TextPeach-linux-x64.tar.gz -C /tmp/tp
+          mkdir -p /tmp/tp && tar -xzf textpeach-linux-x64.tar.gz -C /tmp/tp
           /tmp/tp/install.sh
           test -x ~/.local/opt/textpeach/TextPeach
           test -f ~/.local/opt/textpeach/installed.txt
@@ -118,4 +121,4 @@ jobs:
       - name: Attach it to the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" TextPeach-linux-x64.tar.gz --clobber
+        run: gh release upload "${{ github.event.release.tag_name }}" textpeach-linux-x64.tar.gz --clobber

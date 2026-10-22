@@ -57,7 +57,7 @@
     con `TextBlock`/`SelectableTextBlock`: sin cursor, sin fondo de campo, sin borde de foco. `TextBox` es solo
     para escribir.
 12. **Portable y autocontenido.** Un único `.exe` que funciona sin instalar. Con un `portable.txt` al lado, los
-    datos se guardan junto al exe. El instalador (`TextPeach-Setup.exe`, `install.sh`) es opcional: copia ese
+    datos se guardan junto al exe. El instalador (`textpeach-windows-x64-setup.exe`, `install.sh`) es opcional: copia ese
     mismo exe a una carpeta del usuario, lo registra en el buscador del sistema y deja `installed.txt` al lado.
 13. **Actualizar no interrumpe.** Una versión nueva solo se nota como un botón **↑ x.y.z** junto al **?**; nada
     se descarga sin confirmar en su popup (Actualizar y reiniciar / Ahora no / Omitir esta versión).

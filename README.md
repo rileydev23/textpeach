@@ -129,11 +129,11 @@ avisarte de una versión nueva. En español y en inglés.
 Descarga lo que prefieras desde la sección *Releases* del repositorio (o compílalo, ver
 [Compilar desde el código](#compilar-desde-el-código)):
 
-- **Windows, con instalador:** `TextPeach-Setup.exe`. Se instala solo para tu usuario (no pide administrador)
+- **Windows, con instalador:** `textpeach-windows-x64-setup.exe`. Se instala solo para tu usuario (no pide administrador)
   en `%LOCALAPPDATA%\Programs\TextPeach`, aparece al buscar en el menú Inicio y se desinstala desde
   **Configuración > Aplicaciones**.
-- **Windows, portable:** `TextPeach.exe`. Ponlo en la carpeta que quieras y ejecútalo.
-- **Linux:** `TextPeach-linux-x64.tar.gz`. Descomprímelo con `tar -xzf TextPeach-linux-x64.tar.gz` y
+- **Windows, portable:** `textpeach-windows-x64-portable.exe`. Ponlo en la carpeta que quieras y ejecútalo.
+- **Linux:** `textpeach-linux-x64.tar.gz`. Descomprímelo con `tar -xzf textpeach-linux-x64.tar.gz` y
   ejecuta `./TextPeach`, o `./install.sh` para instalarlo en tu usuario (sin root): queda en
   `~/.local/opt/textpeach`, con el comando `textpeach` y una entrada en el menú de aplicaciones. Para quitarlo,
   `~/.local/opt/textpeach/uninstall.sh`.
@@ -488,7 +488,7 @@ docs/tal ─────PR───┘
    parche (0.3.2 → 0.3.3).
 3. **Un merge no es un release.** Se pueden juntar varios *pull requests* en el borrador y publicarlo cuando
    haya algo que valga la pena entregar. Publicarlo crea el tag `vX.Y.Z` y un workflow
-   automáticamente corre los tests, compila `TextPeach.exe` y `TextPeach-linux-x64.tar.gz` con esa versión, comprueba que
+   automáticamente corre los tests, compila `textpeach-windows-x64-portable.exe`, `textpeach-windows-x64-setup.exe` y `textpeach-linux-x64.tar.gz` con esa versión, comprueba que
    los dos arrancan y los adjunta al release.
 4. Mientras sea 0.x, los cambios incompatibles también suben solo la versión menor. Para sacar la **1.0.0**,
    el mantenedor cambia la versión del borrador a mano justo antes de publicarlo.

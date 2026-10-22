@@ -1,7 +1,7 @@
-; Windows installer: TextPeach-Setup.exe (Inno Setup 6). Per user, no administrator: installs the same portable exe
+; Windows installer: textpeach-windows-x64-setup.exe (Inno Setup 6). Per user, no administrator: installs the same portable exe
 ; into %LOCALAPPDATA%\Programs\TextPeach, adds it to the Start menu (so Windows search finds it) and to
 ; Settings > Apps with its uninstaller. Settings in %APPDATA%\peachapps\TextPeach are kept on uninstall.
-; Build after build.cmd:  iscc /DAppVersion=1.2.3 installer\TextPeach.iss   ->  dist\TextPeach-Setup.exe
+; Build after build.cmd:  iscc /DAppVersion=1.2.3 installer\TextPeach.iss   ->  dist\textpeach-windows-x64-setup.exe
 ; The app updates itself by running a newer setup with /SILENT; installed.txt tells it that it was installed.
 
 #ifndef AppVersion
@@ -24,7 +24,7 @@ PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\dist
-OutputBaseFilename=TextPeach-Setup
+OutputBaseFilename=textpeach-windows-x64-setup
 SetupIconFile=..\src\TextPeach\Assets\app.ico
 UninstallDisplayIcon={app}\TextPeach.exe
 UninstallDisplayName=TextPeach

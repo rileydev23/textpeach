@@ -129,11 +129,11 @@ about a new version. In English and Spanish.
 Download whichever you prefer from the repository's *Releases* (or build it, see
 [Building from source](#building-from-source)):
 
-- **Windows, installer:** `TextPeach-Setup.exe`. It installs for your user only (no administrator) into
+- **Windows, installer:** `textpeach-windows-x64-setup.exe`. It installs for your user only (no administrator) into
   `%LOCALAPPDATA%\Programs\TextPeach`, shows up in Start menu search and is uninstalled from
   **Settings > Apps**.
-- **Windows, portable:** `TextPeach.exe`. Put it in any folder and run it.
-- **Linux:** `TextPeach-linux-x64.tar.gz`. Unpack it with `tar -xzf TextPeach-linux-x64.tar.gz` and run
+- **Windows, portable:** `textpeach-windows-x64-portable.exe`. Put it in any folder and run it.
+- **Linux:** `textpeach-linux-x64.tar.gz`. Unpack it with `tar -xzf textpeach-linux-x64.tar.gz` and run
   `./TextPeach`, or `./install.sh` to install it for your user (no root): it goes to `~/.local/opt/textpeach`,
   with a `textpeach` command and an entry in the app menu. To remove it, `~/.local/opt/textpeach/uninstall.sh`.
 
@@ -480,7 +480,7 @@ docs/stuff ────PR───┘
    (0.3.2 → 0.3.3).
 3. **A merge is not a release.** Several pull requests can pile up in the draft, and it is published when
    there is something worth shipping. Publishing it creates the `vX.Y.Z` tag, and a workflow
-   runs the tests, builds `TextPeach.exe` and `TextPeach-linux-x64.tar.gz` with that version, checks that both
+   runs the tests, builds `textpeach-windows-x64-portable.exe`, `textpeach-windows-x64-setup.exe` and `textpeach-linux-x64.tar.gz` with that version, checks that both
    start, and attaches them to the release.
 4. While on 0.x, breaking changes also raise only the minor version. For **1.0.0**, the maintainer changes the
    draft's version by hand right before publishing it.
