@@ -249,8 +249,8 @@ public sealed class DiffView : DockPanel
             _syncing = true;
             try
             {
-                to.ScrollToVerticalOffset(from.VerticalOffset);
-                to.ScrollToHorizontalOffset(from.HorizontalOffset);
+                to.ScrollVerticallyTo(from.VerticalOffset);
+                to.ScrollHorizontallyTo(from.HorizontalOffset);
             }
             finally { _syncing = false; }
         }
@@ -298,7 +298,7 @@ public sealed class DiffView : DockPanel
             if (center) y -= view.Bounds.Height / 3;
             y = Math.Max(0, y);
             _syncing = true;
-            try { ed.ScrollToVerticalOffset(y); }
+            try { ed.ScrollVerticallyTo(y); }
             finally { _syncing = false; }
             // A fresh editor's scroll viewer learns the document height a moment after its first layout.
             if (Math.Abs(ed.VerticalOffset - y) > 1 && ed.VerticalOffset < y) reached = false;

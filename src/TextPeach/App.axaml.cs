@@ -75,26 +75,29 @@ public partial class App : Application
             {
                 if (action.StartsWith("search:")) { p.FocusSearchCommand.Execute(null); p.SearchText = action[7..]; }
                 else if (action == "edit" && p.SelectedFile is { } f)
-                {
-                    if (f.CanEdit) f.EditCommand.Execute(null);
-                    else
-                    {
-                        System.ComponentModel.PropertyChangedEventHandler? once = null;
-                        once = (_, _) =>
-                        {
-                            if (!f.CanEdit) return;
-                            f.PropertyChanged -= once;
-                            f.EditCommand.Execute(null);
-                        };
-                        f.PropertyChanged += once;
-                    }
-                }
+                    WhenReady(f, () => f.CanEdit, () => f.EditCommand.Execute(null));
+                else if (action == "diff" && p.SelectedFile is { } d)
+                    WhenReady(d, () => d.HasChanges, () => d.ToggleDiffCommand.Execute(null));
                 else if (action.StartsWith("open:")) p.OpenFile(action[5..]);
                 else if (action.StartsWith("tree:")) p.RevealInTree(action[5..]);
                 else if (action == "about") vm.ShowAboutCommand.Execute(null);
                 else if (action.StartsWith("reveal:")) p.SelectedFile?.Reveal(int.Parse(action[7..]));
             }
         }, TimeSpan.FromSeconds(2));
+    }
+
+    /// <summary>Runs <paramref name="act"/> now, or as soon as the file (still loading) makes <paramref name="ready"/> true.</summary>
+    private static void WhenReady(System.ComponentModel.INotifyPropertyChanged f, Func<bool> ready, Action act)
+    {
+        if (ready()) { act(); return; }
+        System.ComponentModel.PropertyChangedEventHandler? once = null;
+        once = (_, _) =>
+        {
+            if (!ready()) return;
+            f.PropertyChanged -= once;
+            act();
+        };
+        f.PropertyChanged += once;
     }
 
     /// <summary>

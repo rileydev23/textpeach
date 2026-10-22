@@ -398,7 +398,7 @@ En Linux, `./build.sh` genera `dist/TextPeach` (linux-x64). Los dos aceptan una 
 reflexión). La primera compilación descarga los paquetes NuGet.
 
 **Depuración sin teclado:** en Debug, la variable `TEXTPEACH_DEBUG_ACTIONS` ejecuta acciones al iniciar,
-por ejemplo `open:docs/DISENO.md;tree:docs/DISENO.md;reveal:80;search:Palette;edit;about`. Útil para
+por ejemplo `open:docs/DISENO.md;tree:docs/DISENO.md;reveal:80;search:Palette;diff;edit;about`. Útil para
 capturas de pantalla.
 
 ## Estructura del repositorio

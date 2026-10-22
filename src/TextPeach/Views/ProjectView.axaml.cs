@@ -386,7 +386,7 @@ public partial class ProjectView : UserControl
         {
             _file.ViewStateSaved = true;
             Editor.CaretOffset = 0;
-            Editor.ScrollToVerticalOffset(0);
+            Editor.ScrollVerticallyTo(0);
         }
     }
 
@@ -407,8 +407,8 @@ public partial class ProjectView : UserControl
         Dispatcher.UIThread.Post(() =>
         {
             if (!ReferenceEquals(Editor.Document, doc)) return;
-            Editor.ScrollToVerticalOffset(v);
-            Editor.ScrollToHorizontalOffset(h);
+            Editor.ScrollVerticallyTo(v);
+            Editor.ScrollHorizontallyTo(h);
         }, DispatcherPriority.Background);
     }
 
@@ -447,8 +447,8 @@ public partial class ProjectView : UserControl
             double lineTop = view.GetVisualTopByDocumentLine(dl.LineNumber);
             double target = Math.Max(0, lineTop - view.Bounds.Height / 3);
             if (lineTop < Editor.VerticalOffset || lineTop > Editor.VerticalOffset + view.Bounds.Height - 2 * view.DefaultLineHeight)
-                Editor.ScrollToVerticalOffset(target);
-            Editor.ScrollToHorizontalOffset(0);
+                Editor.ScrollVerticallyTo(target);
+            Editor.ScrollHorizontallyTo(0);
             Editor.TextArea.Caret.BringCaretToView();
         }, DispatcherPriority.Background);
     }

@@ -391,7 +391,7 @@ On Linux, `./build.sh` produces `dist/TextPeach` (linux-x64). Both take an optio
 through reflection). The first build downloads the NuGet packages.
 
 **Hands-free debugging:** in Debug, the `TEXTPEACH_DEBUG_ACTIONS` variable runs actions at startup, for
-example `open:docs/DISENO.md;tree:docs/DISENO.md;reveal:80;search:Palette;edit;about`. Handy for
+example `open:docs/DISENO.md;tree:docs/DISENO.md;reveal:80;search:Palette;diff;edit;about`. Handy for
 screenshots.
 
 ## Repository layout
