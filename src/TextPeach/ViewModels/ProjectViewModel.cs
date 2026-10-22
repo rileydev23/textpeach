@@ -14,6 +14,14 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
     private const int MaxFilterHits = 300, MaxSearchMatches = 3000, MaxMatchesPerFile = 200;
 
     public string RootPath { get; }
+    /// <summary>
+    /// The file of a simple view: one loose file opened from the system (double click, "Abrir con TextPeach"),
+    /// shown without tree, search or summary. Null for a project.
+    /// </summary>
+    public string? FilePath { get; }
+    public bool IsSingleFile => FilePath is not null;
+    /// <summary>What identifies the tab between sessions: the folder of a project, the file of a simple view.</summary>
+    public string TabKey => FilePath ?? RootPath;
     public ViewerSettings Settings { get; }
     private readonly ProjectStore _store;
 
@@ -73,6 +81,10 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
     public event Action? SearchFocusRequested;
     public event Action? FilterFocusRequested;
     public event Action? EditorFocusRequested;
+    /// <summary>A simple view hands the window a file it does not show itself (a link to a file next to it).</summary>
+    public event Action<string>? OpenRequested;
+    /// <summary>A simple view asks to become its folder's project.</summary>
+    public event Action? FolderRequested;
 
     private List<string> _allFiles = new();
     private FileSystemWatcher? _watcher;
@@ -81,19 +93,30 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
     private bool _disposed, _gitRead;
     private bool _restoring = true; // until the saved session has been reopened
 
-    public ProjectViewModel(string path, ProjectStore store, ViewerSettings settings)
+    public ProjectViewModel(string path, ProjectStore store, ViewerSettings settings, string? file = null)
     {
         RootPath = path;
+        FilePath = file;
         _store = store;
         Settings = settings;
-        _prefs = store.PrefsFor(path);
+        // A simple view leaves no trace among the saved projects.
+        _prefs = file is null ? store.PrefsFor(path) : new ProjectPrefs();
         Rules = new IgnoreRules(_prefs.Ignore);
-        Title = Path.GetFileName(path.TrimEnd('\\', '/'));
-        ToolTip = path;
+        Title = Path.GetFileName(file ?? path.TrimEnd('\\', '/'));
+        ToolTip = file ?? path;
         Summary = new SummaryViewModel(path);
+        Recent.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasRecent));
+
+        if (file is not null)
+        {
+            _restoring = false;
+            OpenFile(Path.GetFileName(file));
+            StartWatcher();
+            ScheduleGitRefresh(0);
+            return;
+        }
         Docs.Add(Summary);
         SelectedDoc = Summary;
-        Recent.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasRecent));
 
         foreach (var n in FileNode.ListChildren(path, path, Git, Rules)) Tree.Add(n);
         RestoreSession();
@@ -124,6 +147,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
 
     private async Task RescanAsync()
     {
+        if (IsSingleFile) return;
         _scanCts?.Cancel();
         var cts = _scanCts = new CancellationTokenSource();
         try
@@ -142,6 +166,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
 
     private void RebuildTree()
     {
+        if (IsSingleFile) return;
         var expanded = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         void Collect(IEnumerable<FileNode> nodes)
         {
@@ -236,6 +261,12 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
             Notice = Loc.F("pv.fileMissing", relPath);
             return null;
         }
+        // A simple view shows its own file only; any other opens in a tab of its own.
+        if (IsSingleFile && !string.Equals(full, FilePath, StringComparison.OrdinalIgnoreCase))
+        {
+            OpenRequested?.Invoke(full);
+            return null;
+        }
         var doc = Docs.OfType<OpenFileViewModel>().FirstOrDefault(d => string.Equals(d.RelPath, relPath, StringComparison.OrdinalIgnoreCase));
         OpenFileViewModel? replaced = null;
         if (doc is null)
@@ -249,7 +280,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
             // Open next to the current tab, like most editors; a preview takes the old preview's place.
             replaced = preview ? Docs.OfType<OpenFileViewModel>().FirstOrDefault(d => d.IsPreview && !d.IsDirty && !d.IsEditing) : null;
             int at = replaced is not null ? Docs.IndexOf(replaced) : SelectedDoc is null ? Docs.Count : Docs.IndexOf(SelectedDoc) + 1;
-            Docs.Insert(Math.Clamp(at, 1, Docs.Count), doc);
+            Docs.Insert(Math.Clamp(at, IsSingleFile ? 0 : 1, Docs.Count), doc);
         }
         else if (!preview) doc.IsPreview = false;
         // A jump inside the file already shown is recorded here; switching files is recorded by the selection.
@@ -290,6 +321,8 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
     /// <summary>Ctrl+W: closes the current file. Returns false when there was no file to close.</summary>
     public bool CloseCurrentDoc()
     {
+        // A simple view is its file: closing the file closes the tab.
+        if (IsSingleFile) return false;
         if (SelectedDoc is not { Closable: true } t) return false;
         _ = CloseDocAsync(t);
         return true;
@@ -324,7 +357,14 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
     }
 
     [RelayCommand]
-    private void ShowSummary() => SelectedDoc = Summary;
+    private void ShowSummary()
+    {
+        if (!IsSingleFile) SelectedDoc = Summary;
+    }
+
+    /// <summary>Simple view: its folder as a whole project, with the file already open.</summary>
+    [RelayCommand]
+    private void OpenFolder() => FolderRequested?.Invoke();
 
     private void RestoreSession()
     {
@@ -346,7 +386,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
 
     private void SaveSession()
     {
-        if (_restoring || _disposed) return;
+        if (_restoring || _disposed || IsSingleFile) return;
         _store.State.Sessions[RootPath] = new ProjectSession
         {
             Files = Docs.OfType<OpenFileViewModel>().Select(d => d.RelPath).ToList(),
@@ -446,6 +486,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
     [RelayCommand]
     private void FocusFilter()
     {
+        if (IsSingleFile) return;
         IsSearchMode = false;
         IsRecentMode = false;
         FilterFocusRequested?.Invoke();
@@ -454,6 +495,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
     [RelayCommand]
     private void ShowRecent()
     {
+        if (IsSingleFile) return;
         IsSearchMode = false;
         IsRecentMode = true;
         UpdateAgo();
@@ -464,6 +506,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
     [RelayCommand]
     private void FocusSearch()
     {
+        if (IsSingleFile) return;
         IsRecentMode = false;
         IsSearchMode = true;
         SearchFocusRequested?.Invoke();
@@ -670,7 +713,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
     [RelayCommand]
     private void RevealCurrent()
     {
-        if (SelectedFile is { } f) { IsSearchMode = false; IsRecentMode = false; FileFilter = ""; RevealInTree(f.RelPath); }
+        if (SelectedFile is { } f && !IsSingleFile) { IsSearchMode = false; IsRecentMode = false; FileFilter = ""; RevealInTree(f.RelPath); }
     }
 
     [RelayCommand] private void ZoomIn() => Settings.Zoom(+1);
@@ -708,7 +751,9 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         {
             _watcher = new FileSystemWatcher(RootPath)
             {
-                IncludeSubdirectories = true,
+                // A simple view watches its file only; a project, everything under it.
+                IncludeSubdirectories = !IsSingleFile,
+                Filter = IsSingleFile ? Path.GetFileName(FilePath)! : "*",
                 NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size,
                 InternalBufferSize = 64 * 1024,
             };
@@ -908,6 +953,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
 
     private void ScheduleTreeRefresh()
     {
+        if (IsSingleFile) return;
         _treeDebounce?.Cancel();
         var cts = _treeDebounce = new CancellationTokenSource();
         Dispatcher.UIThread.Post(async () =>

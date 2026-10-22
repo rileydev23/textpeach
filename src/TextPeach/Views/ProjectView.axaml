@@ -32,7 +32,10 @@
     <Border DockPanel.Dock="Top" Background="#26272b" BorderBrush="#3a3c42" BorderThickness="0,0,0,1" Padding="8,6">
       <DockPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
-          <ToggleButton Classes="follow" IsChecked="{Binding FollowChanges}" ToolTip.Tip="{l:L recent.follow.tip}">
+          <!-- Simple view (one loose file): its folder as a project, the way out to the whole tree. -->
+          <Button Content="{l:L pv.openFolder}" Command="{Binding OpenFolderCommand}" IsVisible="{Binding IsSingleFile}"
+                  ToolTip.Tip="{l:L pv.openFolder.tip}" />
+          <ToggleButton Classes="follow" IsChecked="{Binding FollowChanges}" ToolTip.Tip="{l:L recent.follow.tip}" IsVisible="{Binding !IsSingleFile}">
             <StackPanel Orientation="Horizontal" Spacing="6">
               <Ellipse Classes="live" Width="7" Height="7" VerticalAlignment="Center" />
               <TextBlock Text="{l:L recent.follow}" VerticalAlignment="Center" />
@@ -42,16 +45,18 @@
                   ToolTip.Tip="{l:L pv.openDefault.tip}" />
         </StackPanel>
         <StackPanel Orientation="Horizontal" Spacing="4">
-          <Button Content="←" Command="{Binding GoBackCommand}" IsEnabled="{Binding CanGoBack}" ToolTip.Tip="{l:L nav.back.tip}" Padding="9,4" />
-          <Button Content="→" Command="{Binding GoForwardCommand}" IsEnabled="{Binding CanGoForward}" ToolTip.Tip="{l:L nav.forward.tip}" Padding="9,4" />
-          <Border Width="1" Background="#3a3c42" Margin="6,2" />
-          <Button Content="{l:L pv.goToFile}" Command="{Binding QuickOpenFileCommand}" ToolTip.Tip="Ctrl+P" />
-          <Button Content="{l:L pv.searchProject}" Command="{Binding FocusSearchCommand}" ToolTip.Tip="Ctrl+Shift+F" />
+          <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding !IsSingleFile}">
+            <Button Content="←" Command="{Binding GoBackCommand}" IsEnabled="{Binding CanGoBack}" ToolTip.Tip="{l:L nav.back.tip}" Padding="9,4" />
+            <Button Content="→" Command="{Binding GoForwardCommand}" IsEnabled="{Binding CanGoForward}" ToolTip.Tip="{l:L nav.forward.tip}" Padding="9,4" />
+            <Border Width="1" Background="#3a3c42" Margin="6,2" />
+            <Button Content="{l:L pv.goToFile}" Command="{Binding QuickOpenFileCommand}" ToolTip.Tip="Ctrl+P" />
+            <Button Content="{l:L pv.searchProject}" Command="{Binding FocusSearchCommand}" ToolTip.Tip="Ctrl+Shift+F" />
+          </StackPanel>
           <Button Content="{l:L pv.goToLine}" Command="{Binding GoToLineCommand}" IsEnabled="{Binding HasFile}" ToolTip.Tip="Ctrl+G" />
           <Border Width="1" Background="#3a3c42" Margin="6,2" />
-          <Button Content="{l:L pv.summary}" Command="{Binding ShowSummaryCommand}" />
+          <Button Content="{l:L pv.summary}" Command="{Binding ShowSummaryCommand}" IsVisible="{Binding !IsSingleFile}" />
           <Button Content="{l:L pv.refresh}" Command="{Binding RefreshCommand}" ToolTip.Tip="F5" />
-          <TextBlock Text="{Binding FilesText}" FontWeight="SemiBold" Foreground="#6cc070" VerticalAlignment="Center" Margin="14,0,0,0" />
+          <TextBlock Text="{Binding FilesText}" IsVisible="{Binding !IsSingleFile}" FontWeight="SemiBold" Foreground="#6cc070" VerticalAlignment="Center" Margin="14,0,0,0" />
         </StackPanel>
       </DockPanel>
     </Border>
@@ -88,7 +93,7 @@
       </DockPanel>
     </Border>
 
-    <Grid>
+    <Grid x:Name="Columns">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="260" MinWidth="160" />
         <ColumnDefinition Width="4" />
@@ -97,8 +102,8 @@
         <ColumnDefinition Width="290" MinWidth="200" />
       </Grid.ColumnDefinitions>
 
-      <!-- Sidebar: explorer / search -->
-      <Border Background="#222327">
+      <!-- Sidebar: explorer / search (not in a simple view, see ProjectView.ApplyLayout) -->
+      <Border Background="#222327" IsVisible="{Binding !IsSingleFile}">
         <DockPanel>
           <Grid DockPanel.Dock="Top" ColumnDefinitions="*,*,*" Margin="0,0,0,2">
             <Button Classes="seg" Classes.active="{Binding IsFilesMode}" Content="{l:L pv.files}" Command="{Binding FocusFilterCommand}" />
@@ -224,11 +229,11 @@
           </Panel>
         </DockPanel>
       </Border>
-      <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
+      <GridSplitter Grid.Column="1" ResizeDirection="Columns" IsVisible="{Binding !IsSingleFile}" />
 
       <!-- Center: open files -->
       <DockPanel Grid.Column="2">
-        <Border DockPanel.Dock="Top" Background="#1e1f22" BorderBrush="#3a3c42" BorderThickness="0,0,0,1">
+        <Border DockPanel.Dock="Top" Background="#1e1f22" BorderBrush="#3a3c42" BorderThickness="0,0,0,1" IsVisible="{Binding !IsSingleFile}">
           <ListBox x:Name="DocTabs" Classes="doctabs tabstrip" ItemsSource="{Binding Docs}" SelectedItem="{Binding SelectedDoc}">
             <ListBox.ItemsPanel>
               <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>

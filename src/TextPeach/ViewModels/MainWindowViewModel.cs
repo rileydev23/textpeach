@@ -33,15 +33,17 @@ public partial class MainWindowViewModel : ObservableObject
         foreach (var path in saved)
         {
             if (Directory.Exists(path)) AddProjectTab(path, select: false);
+            else if (File.Exists(path)) AddFileTab(path, select: false);
         }
         SelectedTab = Tabs.OfType<ProjectViewModel>().FirstOrDefault(t =>
-            string.Equals(t.RootPath, active, StringComparison.OrdinalIgnoreCase)) ?? (TabViewModel)Home;
+            string.Equals(t.TabKey, active, StringComparison.OrdinalIgnoreCase)) ?? (TabViewModel)Home;
         _ready = true;
     }
 
     /// <summary>
-    /// <c>TextPeach.exe &lt;carpeta|archivo&gt;</c>: a folder becomes (or reuses) a project; a file opens inside
-    /// the saved project that contains it, or inside its own folder.
+    /// <c>TextPeach.exe &lt;carpeta|archivo&gt;</c> (also a double click or "Abrir con TextPeach" in the Explorer):
+    /// a folder becomes (or reuses) a project; a file opens inside the open project that contains it, as in VS Code,
+    /// or else in a simple view of its own.
     /// </summary>
     public void OpenFromArgs(IEnumerable<string> args)
     {
@@ -55,13 +57,16 @@ public partial class MainWindowViewModel : ObservableObject
             }
             else if (File.Exists(path))
             {
-                var root = Store.State.Projects
-                    .Where(p => path.StartsWith(ProjectStore.Normalize(p.Path) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
-                    .OrderByDescending(p => p.Path.Length).FirstOrDefault()
-                    ?? Store.Add(Path.GetDirectoryName(path)!);
-                OpenProject(root);
-                if (SelectedTab is ProjectViewModel p)
-                    p.OpenFile(Path.GetRelativePath(p.RootPath, path).Replace('\\', '/'));
+                var project = Tabs.OfType<ProjectViewModel>()
+                    .Where(p => !p.IsSingleFile && path.StartsWith(p.RootPath.TrimEnd('\\', '/') + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                    .OrderByDescending(p => p.RootPath.Length).FirstOrDefault();
+                if (project is null)
+                {
+                    AddFileTab(path, select: true);
+                    continue;
+                }
+                SelectedTab = project;
+                project.OpenFile(Path.GetRelativePath(project.RootPath, path).Replace('\\', '/'));
             }
         }
         Home.Reload();
@@ -74,20 +79,32 @@ public partial class MainWindowViewModel : ObservableObject
         SaveTabs();
     }
 
-    private void AddProjectTab(string path, bool select)
+    /// <summary>A loose file in a simple view of its own; its tab is reused if already open.</summary>
+    private void AddFileTab(string file, bool select) => AddProjectTab(Path.GetDirectoryName(file)!, select, file);
+
+    private void AddProjectTab(string path, bool select, string? file = null)
     {
         var existing = Tabs.OfType<ProjectViewModel>().FirstOrDefault(t =>
-            string.Equals(t.RootPath, path, StringComparison.OrdinalIgnoreCase));
+            string.Equals(t.TabKey, file ?? path, StringComparison.OrdinalIgnoreCase));
         if (existing is not null)
         {
             if (select) SelectedTab = existing;
             return;
         }
-        var tab = new ProjectViewModel(path, Store, Settings);
+        var tab = new ProjectViewModel(path, Store, Settings, file);
         tab.CloseCommand = new AsyncRelayCommand(() => CloseTabAsync(tab));
+        tab.OpenRequested += other => OpenFromArgs(new[] { other });
+        tab.FolderRequested += () => _ = OpenFolderOfAsync(tab);
         Tabs.Add(tab);
         ProjectTabs.Add(tab);
         if (select) SelectedTab = tab;
+    }
+
+    /// <summary>"Abrir carpeta" in a simple view: the folder as a project with the file open, in place of the simple view.</summary>
+    private async Task OpenFolderOfAsync(ProjectViewModel single)
+    {
+        OpenFromArgs(new[] { single.RootPath, single.FilePath! });
+        if (!single.HasUnsavedChanges) await CloseTabAsync(single);
     }
 
     public async Task CloseTabAsync(TabViewModel tab)
@@ -256,7 +273,7 @@ public partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private async Task QuickOpenAsync()
     {
-        if (SelectedTab is ProjectViewModel p) await p.QuickOpenFileAsync();
+        if (SelectedTab is ProjectViewModel { IsSingleFile: false } p) await p.QuickOpenFileAsync();
         else await QuickOpenProjectAsync();
     }
 
@@ -296,8 +313,8 @@ public partial class MainWindowViewModel : ObservableObject
 
     public void SaveTabs()
     {
-        Store.State.OpenTabs = Tabs.OfType<ProjectViewModel>().Select(t => t.RootPath).ToList();
-        Store.State.ActiveTab = (SelectedTab as ProjectViewModel)?.RootPath;
+        Store.State.OpenTabs = Tabs.OfType<ProjectViewModel>().Select(t => t.TabKey).ToList();
+        Store.State.ActiveTab = (SelectedTab as ProjectViewModel)?.TabKey;
         Store.Save();
     }
 

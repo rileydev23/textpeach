@@ -165,12 +165,37 @@ public partial class ProjectView : UserControl
         }
         if (_settings is not null) _settings.PropertyChanged += OnSettingsChanged;
         ApplySettings();
+        ApplyLayout();
         SwitchTo(_vm?.SelectedFile);
         // Project shortcuts live on this view, so something inside it must own the focus.
         if (_vm is not null)
         {
             if (_vm.HasFile) OnEditorFocus();
             else OnFilterFocus();
+        }
+    }
+
+    private GridLength _sidebarWidth = new(260);
+
+    /// <summary>
+    /// A simple view has no sidebar: its column collapses, and the width the user gave the project tabs comes back
+    /// with the next project shown (this view is shared by all of them).
+    /// </summary>
+    private void ApplyLayout()
+    {
+        var sidebar = Columns.ColumnDefinitions[0];
+        if (_vm is { IsSingleFile: true })
+        {
+            if (sidebar.Width.Value > 0) _sidebarWidth = sidebar.Width;
+            sidebar.MinWidth = 0;
+            sidebar.Width = new GridLength(0);
+            Columns.ColumnDefinitions[1].Width = new GridLength(0);
+        }
+        else if (sidebar.Width.Value == 0)
+        {
+            sidebar.Width = _sidebarWidth;
+            sidebar.MinWidth = 160;
+            Columns.ColumnDefinitions[1].Width = new GridLength(4);
         }
     }
 

@@ -90,9 +90,12 @@ public partial class MainWindow : Window
             var path = item.TryGetLocalPath();
             if (path is null) continue;
             if (Directory.Exists(path)) await vm.Home.AddOrImportAsync(path);
-            else if (File.Exists(path) && vm.SelectedTab is ProjectViewModel p &&
+            else if (!File.Exists(path)) continue;
+            else if (vm.SelectedTab is ProjectViewModel { IsSingleFile: false } p &&
                      path.StartsWith(p.RootPath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
                 p.OpenFile(Path.GetRelativePath(p.RootPath, path).Replace('\\', '/'));
+            // Outside the current project: wherever a double click in the Explorer would open it.
+            else vm.OpenFromArgs(new[] { path });
         }
     }
 }
