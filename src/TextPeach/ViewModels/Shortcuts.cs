@@ -23,6 +23,8 @@ public static class Shortcuts
         ("Ctrl+G", Loc.T("keys.goToLine")),
         ("Alt+← / Alt+→", Loc.T("keys.backForward")),
         ("Alt+D", Loc.T("keys.diff")),
+        ("Ctrl+J", Loc.T("keys.console")),
+        (Loc.T("keys.treeFiles.keys"), Loc.T("keys.treeFiles")),
         ("Ctrl+PageDown / PageUp", Loc.T("keys.nextFile")),
         ("Ctrl+E", Loc.T("keys.edit")),
         ("Ctrl+S", Loc.T("keys.save")),

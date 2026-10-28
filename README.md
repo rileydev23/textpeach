@@ -104,7 +104,8 @@ avisarte de una versión nueva. En español y en inglés.
 | Área | Qué incluye |
 |---|---|
 | **Proyectos** | Lista persistente de carpetas, favoritos ★, grupos plegables, filtro difuso, escaneo de carpetas (lo encontrado se guarda como un grupo), arrastrar y soltar, varias pestañas abiertas que se restauran al reiniciar. |
-| **Explorador** | Árbol de archivos perezoso (ignora `node_modules`, `bin`, `obj`, `.git`, `dist`…), filtro rápido por nombre, "Ir a archivo" (Ctrl+P) con ranking inteligente. |
+| **Explorador** | Árbol de archivos perezoso (ignora `node_modules`, `bin`, `obj`, `.git`, `dist`…), filtro rápido por nombre, "Ir a archivo" (Ctrl+P) con ranking inteligente. Clic derecho con lo de siempre: nuevo archivo o carpeta, cortar, copiar, pegar (también desde y hacia el Explorador), duplicar, cambiar nombre (F2), eliminar a la papelera (Supr), copiar ruta, mostrar en el Explorador y abrir con la aplicación predeterminada. |
+| **Consola** | Terminales reales (PowerShell en Windows, tu shell en Linux) en la carpeta del proyecto con **Ctrl+J**: debajo del código, como una página que ocupa el lugar del código, o en una ventana aparte. Hasta 4 a la vez, en filas, columnas o cuadrícula (una en cada esquina). |
 | **Estado de git** | Rama actual (con commits por enviar o traer) en la barra de estado; archivos modificados, nuevos, agregados, renombrados, en conflicto e ignorados con su color y su letra, también en las carpetas y en las pestañas. Solo lectura: un clic en la rama abre el repositorio en GitPeach. |
 | **Visor de código** | Resaltado TextMate (las mismas gramáticas que muchos editores modernos), números de línea, plegado de bloques, línea actual, zoom, ajuste de línea, mostrar espacios/tabs/fines de línea, buscar en el archivo (Ctrl+F), ir a línea (Ctrl+G). |
 | **Vista renderizada** | Markdown (títulos, listas, tareas, tablas, citas, bloques de código, imágenes locales, enlaces) y texto plano formateado. Conmutador **Renderizada \| Código**. |
@@ -114,7 +115,7 @@ avisarte de una versión nueva. En español y en inglés.
 | **Imágenes** | Vista previa de PNG, JPG, GIF, BMP, ICO y WebP con dimensiones. |
 | **Edición opcional** | Por archivo, explícita, con aviso visible; guarda con la misma codificación y BOM originales. |
 | **Idiomas** | Español e inglés; sigue el idioma de Windows o el que elijas en **Acerca de**. |
-| **Integración** | Rutas por línea de comandos, instancia única (otras apps pueden pedirle abrir carpetas y archivos), "Abrir con la aplicación predeterminada", enlace con GitPeach. |
+| **Integración** | Rutas por línea de comandos, instancia única (otras apps pueden pedirle abrir carpetas y archivos), "Abrir con la aplicación predeterminada" (en el menú del árbol y en ⋯), enlace con GitPeach. |
 
 ## Requisitos
 
@@ -190,7 +191,7 @@ Java, etc.) y lo muestra en verde junto al nombre.
 ### La pestaña de un proyecto
 
 ```
-┌ Toolbar: Ir a archivo · Buscar en proyecto · Ir a línea │ Resumen · Refrescar   N archivos   [Abrir con la app predeterminada]
+┌ Toolbar: Ir a archivo · Buscar en proyecto · Ir a línea │ Resumen · Refrescar   N archivos     ● Seguir  [Consola]
 ├──────────────┬─────────────────────────────────────────────┬──────────────────────┤
 │ Archivos     │ Resumen │ archivo-a ✕ │ archivo-b ✕          │ Análisis             │
 │  / Buscar    │ ruta/archivo.ext  [Lenguaje]  [Renderizada|Código] [✎ Editar] [⋯] │
@@ -209,6 +210,13 @@ Java, etc.) y lo muestra en verde junto al nombre.
   pestañas, la rueda del mouse las desplaza de lado y una barra fina aparece debajo, sin taparlas.
 - **Menú ⋯ del archivo:** copiar ruta completa o relativa, revelar en el árbol, abrir con la aplicación
   predeterminada, recargar desde el disco.
+- **Menú del árbol (clic derecho):** abrir, abrir con la aplicación predeterminada, nuevo archivo o carpeta,
+  cortar/copiar/pegar (Ctrl+X/C/V), duplicar, copiar ruta, mostrar en el Explorador, abrir consola aquí,
+  ignorar la carpeta, cambiar nombre (F2) y eliminar (Supr, a la papelera y siempre con confirmación).
+- **Consola (Ctrl+J o el botón *Consola*):** una barra con **+ Nueva** (hasta 4 terminales), cómo se reparten
+  (**Filas**, **Columnas** o **Cuadrícula**) y dónde van: **Abajo**, **Página** (una pestaña "Consola" que ocupa
+  el lugar del código y del análisis) o **Ventana**. Ocultarla no cierra las terminales; cambiarla de lugar
+  tampoco las reinicia.
 - **Barra de estado:** rama de git a la izquierda; a la derecha, posición del cursor, indentación, fin de
   línea, codificación, lenguaje y modo (*Solo lectura* / *Editando*); ajuste de línea, espacios invisibles
   (¶) y tamaño de letra.
@@ -528,6 +536,7 @@ Construido con:
 - [AvaloniaEdit](https://github.com/AvaloniaUI/AvaloniaEdit) y AvaloniaEdit.TextMate (MIT)
 - [TextMateSharp](https://github.com/danipen/TextMateSharp) y sus gramáticas (MIT; gramáticas con sus propias licencias, mayormente MIT)
 - [Markdig](https://github.com/xoofx/markdig) (BSD-2-Clause)
+- [Iciclecreek.Avalonia.Terminal](https://github.com/tomlm/Iciclecreek.Avalonia.Terminal), [XTerm.NET](https://github.com/tomlm/XTerm.NET) y [Porta.Pty](https://github.com/tomlm/Porta.Pty), para la consola (MIT)
 - [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet) (MIT)
 
 ---

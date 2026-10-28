@@ -25,6 +25,7 @@
     <KeyBinding Gesture="Alt+Left" Command="{Binding GoBackCommand}" />
     <KeyBinding Gesture="Alt+Right" Command="{Binding GoForwardCommand}" />
     <KeyBinding Gesture="Alt+D" Command="{Binding ToggleDiffCommand}" />
+    <KeyBinding Gesture="Ctrl+J" Command="{Binding ToggleConsoleCommand}" />
   </UserControl.KeyBindings>
 
   <DockPanel>
@@ -41,8 +42,9 @@
               <TextBlock Text="{l:L recent.follow}" VerticalAlignment="Center" />
             </StackPanel>
           </ToggleButton>
-          <Button Content="{l:L pv.openDefault.short}" Command="{Binding OpenWithDefaultCommand}" IsEnabled="{Binding HasFile}"
-                  ToolTip.Tip="{l:L pv.openDefault.tip}" />
+          <!-- The project's terminals: below the code, as a page of the file strip, or in a window (see ConsoleView). -->
+          <ToggleButton IsChecked="{Binding Console.IsOpen, Mode=OneWay}" Command="{Binding ToggleConsoleCommand}"
+                        Content="{l:L pv.console}" ToolTip.Tip="{l:L pv.console.tip}" />
         </StackPanel>
         <StackPanel Orientation="Horizontal" Spacing="4">
           <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding !IsSingleFile}">
@@ -94,6 +96,12 @@
     </Border>
 
     <Grid x:Name="Columns">
+      <!-- Row 0 the content; rows 1-2 the console panel below the code and its splitter (sized in ProjectView.ApplyConsole). -->
+      <Grid.RowDefinitions>
+        <RowDefinition Height="*" MinHeight="120" />
+        <RowDefinition Height="0" />
+        <RowDefinition Height="0" />
+      </Grid.RowDefinitions>
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="260" MinWidth="160" />
         <ColumnDefinition Width="4" />
@@ -103,7 +111,7 @@
       </Grid.ColumnDefinitions>
 
       <!-- Sidebar: explorer / search (not in a simple view, see ProjectView.ApplyLayout) -->
-      <Border Background="#222327" IsVisible="{Binding !IsSingleFile}">
+      <Border Grid.RowSpan="3" Background="#222327" IsVisible="{Binding !IsSingleFile}">
         <DockPanel>
           <Grid DockPanel.Dock="Top" ColumnDefinitions="*,*,*" Margin="0,0,0,2">
             <Button Classes="seg" Classes.active="{Binding IsFilesMode}" Content="{l:L pv.files}" Command="{Binding FocusFilterCommand}" />
@@ -229,7 +237,7 @@
           </Panel>
         </DockPanel>
       </Border>
-      <GridSplitter Grid.Column="1" ResizeDirection="Columns" IsVisible="{Binding !IsSingleFile}" />
+      <GridSplitter Grid.Column="1" Grid.RowSpan="3" ResizeDirection="Columns" IsVisible="{Binding !IsSingleFile}" />
 
       <!-- Center: open files -->
       <DockPanel Grid.Column="2">
@@ -260,6 +268,8 @@
 
         <Panel>
           <views:SummaryView DataContext="{Binding Summary}" IsVisible="{Binding $parent[UserControl].((vm:ProjectViewModel)DataContext).IsSummary}" />
+          <!-- The console as a page: it takes the code's place and the analysis column's (see ApplyLayout). -->
+          <Border x:Name="ConsolePageHost" IsVisible="{Binding IsConsole}" />
 
           <Panel DataContext="{Binding SelectedFile}" IsVisible="{Binding $parent[UserControl].((vm:ProjectViewModel)DataContext).HasFile}">
             <DockPanel x:DataType="vm:OpenFileViewModel">
@@ -287,7 +297,6 @@
                           <MenuItem Header="{l:L pv.copyFull}" Command="{Binding $parent[UserControl].((vm:ProjectViewModel)DataContext).CopyPathCommand}" CommandParameter="full" />
                           <MenuItem Header="{l:L pv.copyRel}" Command="{Binding $parent[UserControl].((vm:ProjectViewModel)DataContext).CopyPathCommand}" CommandParameter="rel" />
                           <MenuItem Header="{l:L pv.reveal}" Command="{Binding $parent[UserControl].((vm:ProjectViewModel)DataContext).RevealCurrentCommand}" />
-                          <Separator />
                           <MenuItem Header="{l:L common.openDefault}" Command="{Binding $parent[UserControl].((vm:ProjectViewModel)DataContext).OpenWithDefaultCommand}" />
                           <Separator />
                           <MenuItem Header="{l:L pv.reloadDisk}" Command="{Binding ReloadFromDiskCommand}" />
@@ -413,6 +422,10 @@
           </Panel>
         </Panel>
       </Border>
+
+      <!-- Console panel below the code and the analysis -->
+      <GridSplitter x:Name="ConsoleSplitter" Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="3" ResizeDirection="Rows" />
+      <Border x:Name="ConsolePanelHost" Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="3" />
     </Grid>
   </DockPanel>
 </UserControl>

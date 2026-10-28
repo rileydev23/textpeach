@@ -104,7 +104,8 @@ about a new version. In English and Spanish.
 | Area | What it includes |
 |---|---|
 | **Projects** | Persistent list of folders, favorites ★, collapsible groups, fuzzy filter, folder scanning (what it finds is saved as a group), drag and drop, several open tabs restored on restart. |
-| **Explorer** | Lazy file tree (skips `node_modules`, `bin`, `obj`, `.git`, `dist`…), quick filter by name, "Go to file" (Ctrl+P) with smart ranking. |
+| **Explorer** | Lazy file tree (skips `node_modules`, `bin`, `obj`, `.git`, `dist`…), quick filter by name, "Go to file" (Ctrl+P) with smart ranking. Right click for the usual: new file or folder, cut, copy, paste (also from and to File Explorer), duplicate, rename (F2), delete to the recycle bin (Del), copy path, show in Explorer and open with the default app. |
+| **Console** | Real terminals (PowerShell on Windows, your shell on Linux) in the project folder with **Ctrl+J**: below the code, as a page that takes the code's place, or in a separate window. Up to 4 at once, in rows, columns or a grid (one in each corner). |
 | **Git state** | Current branch (with commits to push or pull) in the status bar; modified, new, added, renamed, conflicted and ignored files with their color and letter, also on folders and tabs. Read-only: clicking the branch opens the repository in GitPeach. |
 | **Code viewer** | TextMate highlighting (the same grammars many modern editors use), line numbers, code folding, current line, zoom, word wrap, show spaces/tabs/line endings, find in file (Ctrl+F), go to line (Ctrl+G). |
 | **Rendered view** | Markdown (headings, lists, tasks, tables, quotes, code blocks, local images, links) and formatted plain text. **Rendered \| Code** switch. |
@@ -114,7 +115,7 @@ about a new version. In English and Spanish.
 | **Images** | Preview of PNG, JPG, GIF, BMP, ICO and WebP with dimensions. |
 | **Optional editing** | Per file, explicit, with a visible warning; saves with the original encoding and BOM. |
 | **Languages** | English and Spanish; follows the Windows language or the one you pick in **About**. |
-| **Integration** | Paths on the command line, single instance (other apps can ask it to open folders and files), "Open with the default app", link to GitPeach. |
+| **Integration** | Paths on the command line, single instance (other apps can ask it to open folders and files), "Open with the default app" (in the tree menu and in ⋯), link to GitPeach. |
 
 ## Requirements
 
@@ -187,7 +188,7 @@ etc.) and shows it in green next to the name.
 ### A project tab
 
 ```
-┌ Toolbar: Go to file · Search project · Go to line │ Summary · Refresh   N files   [Open with default app]
+┌ Toolbar: Go to file · Search project · Go to line │ Summary · Refresh   N files       ● Follow  [Console]
 ├──────────────┬─────────────────────────────────────────────┬──────────────────────┤
 │ Files        │ Summary │ file-a ✕ │ file-b ✕                │ Analysis             │
 │  / Search    │ path/file.ext  [Language]  [Rendered|Code] [✎ Edit] [⋯]          │
@@ -205,6 +206,13 @@ etc.) and shows it in green next to the name.
   all. Switching tabs keeps each file's cursor and scroll position. With many tabs, the mouse wheel scrolls
   them sideways and a thin bar shows up below them, never on top of them.
 - **File ⋯ menu:** copy full or relative path, reveal in tree, open with the default app, reload from disk.
+- **Tree menu (right click):** open, open with the default app, new file or folder, cut/copy/paste
+  (Ctrl+X/C/V), duplicate, copy path, show in Explorer, open console here, ignore the folder, rename (F2) and
+  delete (Del, to the recycle bin and always confirmed).
+- **Console (Ctrl+J or the *Console* button):** a bar with **+ New** (up to 4 terminals), how they share the
+  space (**Rows**, **Columns** or **Grid**) and where they go: **Below**, **Page** (a "Console" tab that takes the
+  place of the code and the analysis) or **Window**. Hiding it does not close the terminals; moving it does not
+  restart them either.
 - **Status bar:** git branch on the left; on the right, cursor position, indentation, line ending, encoding,
   language and mode (*Read-only* / *Editing*); word wrap, invisible characters (¶) and font size.
 
@@ -518,6 +526,7 @@ Built with:
 - [AvaloniaEdit](https://github.com/AvaloniaUI/AvaloniaEdit) and AvaloniaEdit.TextMate (MIT)
 - [TextMateSharp](https://github.com/danipen/TextMateSharp) and its grammars (MIT; grammars under their own licenses, mostly MIT)
 - [Markdig](https://github.com/xoofx/markdig) (BSD-2-Clause)
+- [Iciclecreek.Avalonia.Terminal](https://github.com/tomlm/Iciclecreek.Avalonia.Terminal), [XTerm.NET](https://github.com/tomlm/XTerm.NET) and [Porta.Pty](https://github.com/tomlm/Porta.Pty), for the console (MIT)
 - [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet) (MIT)
 
 ---

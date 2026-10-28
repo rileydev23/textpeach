@@ -52,7 +52,9 @@
 9. **Inglés y español en la interfaz, inglés en el código.** Textos visibles en los dos idiomas
    ([10](#10-textos-y-tono)); clases, variables y comentarios en inglés.
 10. **Sin nombres de terceros.** La interfaz nunca menciona ni lanza aplicaciones de terceros. Lo permitido:
-    **"Abrir con la aplicación predeterminada"** (delega en el sistema) y GitPeach, la app hermana para git.
+    **"Abrir con la aplicación predeterminada"** (delega en el sistema), el explorador de archivos del sistema,
+    la **Consola** (el shell del sistema: PowerShell en Windows, `$SHELL` en Linux) y GitPeach, la app hermana
+    para git.
 11. **Lo que solo se lee nunca parece editable.** Texto informativo, mensajes, atajos y documentos se muestran
     con `TextBlock`/`SelectableTextBlock`: sin cursor, sin fondo de campo, sin borde de foco. `TextBox` es solo
     para escribir.
@@ -271,14 +273,17 @@ Esquinas: 3 px controles, 4 px tarjetas, 0 en segmentos y pestañas. Sin sombras
 ├──────────────────────────────────────────────────────────────────────────────┤
 │▌Proyectos▐│ proyecto-a ✕ │ proyecto-b ✕ │                                 ? │ pestañas   #18191c
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ ← → │ Ir a archivo  Buscar  Ir a línea │ Resumen  Refrescar  80 archivos   ● Seguir  Abrir con… │ toolbar #26272b
+│ ← → │ Ir a archivo  Buscar  Ir a línea │ Resumen  Refrescar  80 archivos       ● Seguir  Consola │ toolbar #26272b
 ├──────────────┬┬───────────────────────────────────────────┬┬─────────────────┤
 │ Archivos     ││ Resumen │ archivo.cs ✕ │ otro.md ✕         ││ Análisis        │
 │ Buscar       ││ src/archivo.cs  C#  41 KB   Cambios +3 −1 ││ Estructura      │
 │ Cambios ●    ││ (banner si se edita)                      ││ Marcadores      │
 │              ││ editor │ diff │ vista renderizada │ imagen ││                 │
 │ #222327      ││ #1b1c1f                                ▌▌ ││ #222327         │
-├──────────────┴┴───────────────────────────────────────────┴┴─────────────────┤
+│              │├───────────────────────────────────────────┴┴─────────────────┤
+│              ││ Consola  + Nueva   Filas|Columnas|Cuadrícula  Abajo|Página|Ventana  ✕ │ si está abierta
+│              ││ PS C:\proyecto>                                              #1b1c1f │
+├──────────────┴┴──────────────────────────────────────────────────────────────┤
 │ ⑂ main ↑1 3 cambios   aviso…        Ln 12, Col 4 · 4 espacios · LF · UTF-8 · C# · Solo lectura │ estado #18191c
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -291,10 +296,11 @@ Esquinas: 3 px controles, 4 px tarjetas, 0 en segmentos y pestañas. Sin sombras
   (`Button.home`, fondo `#111214`, activo con línea inferior azul de 2 px), después una pestaña por proyecto y,
   a la derecha, `?` (F1). Sin icono. Tooltip: la ruta completa.
 - **Toolbar** (`#26272b`): `←` `→`, navegación (Ir a archivo, Buscar en proyecto, Ir a línea), Resumen,
-  Refrescar y el número de archivos en verde SemiBold. A la derecha **Seguir** y "Abrir con la app
-  predeterminada" (deshabilitado si no hay archivo).
+  Refrescar y el número de archivos en verde SemiBold. A la derecha **Seguir** y **Consola** (`ToggleButton`,
+  marcado mientras la consola está abierta; ver [8.11](#811-consola)).
 - **Cuerpo** en tres columnas con `GridSplitter` de 4 px: barra lateral 260 px (mín. 160), contenido (mín.
-  360), análisis 290 px (mín. 200).
+  360), análisis 290 px (mín. 200). La consola abierta **abajo** ocupa una fila bajo el contenido y el análisis
+  (240 px por defecto, mín. 80, se recuerda); como **página**, el lugar del contenido y del análisis.
 - **Barra de estado**: a la izquierda la rama de git (o "Sin git") y el último aviso; a la derecha posición del
   cursor, indentación, fin de línea, codificación, lenguaje en su color, "Solo lectura" / "Editando", ajuste de
   línea, `¶` y tamaño de fuente.
@@ -345,7 +351,23 @@ reemplazan enteras.
 perezosa ("…" hasta expandir), carpetas primero, orden alfabético sin distinguir mayúsculas. Se ocultan las
 carpetas de herramientas y build (`.git`, `node_modules`, `bin`, `obj`, `dist`…) y las que el proyecto ignora
 ([8.7](#87-historial-y-carpetas-ignoradas)). Un clic abre en vista previa; doble clic fija la pestaña o
-expande la carpeta. Menú contextual: Ignorar esta carpeta · Carpetas ignoradas…
+expande la carpeta. El clic derecho selecciona la fila (sin abrirla) y muestra el menú, por grupos:
+
+| Grupo | Entradas |
+|---|---|
+| Abrir (solo archivos) | Abrir · Abrir con la aplicación predeterminada |
+| Crear | Nuevo archivo... · Nueva carpeta... (en la carpeta, o en la del archivo; el nombre admite `src/a.cs`) |
+| Portapapeles | Cortar `Ctrl+X` · Copiar `Ctrl+C` · Pegar `Ctrl+V` · Duplicar |
+| Rutas y sistema | Copiar ruta completa · Copiar ruta relativa · Mostrar en el Explorador · Abrir consola aquí |
+| Proyecto | Ignorar esta carpeta · Carpetas ignoradas… |
+| Al final | Cambiar nombre... `F2` · Eliminar... `Supr` |
+
+Sobre el espacio vacío del árbol, lo mismo para la raíz del proyecto. Copiar pone los archivos también en el
+portapapeles del sistema (se pegan en el Explorador) y Pegar acepta lo copiado en el Explorador; lo cortado se
+mueve solo si el portapapeles sigue teniendo exactamente eso. Nada se pisa: un nombre ocupado da
+"a - copia.txt", "a - copia (2).txt". Eliminar siempre confirma y manda a la **papelera**; si no hay papelera,
+una segunda confirmación dice que no se puede deshacer. Un archivo abierto que se renombra o mueve sigue abierto
+en su nueva ruta; uno que se está editando bloquea la acción ("termina la edición primero").
 
 ### 7.5 Pestañas
 
@@ -364,7 +386,8 @@ expande la carpeta. Menú contextual: Ignorar esta carpeta · Carpetas ignoradas
 Franja `#26272b`, `Padding="10,5"`: ruta (dir `dim` + nombre SemiBold), badge del lenguaje (borde `#3a3c42`,
 fondo `#2d2e33`, texto del color del lenguaje, 11 px) y metadatos `dim` 11 px (tamaño, fecha) que se recortan
 con `…`. A la derecha: **Cambios +n −n** (si hay cambios de git), Renderizada | Código (si aplica), ✎ Editar /
-Guardar y `⋯` con lo secundario (copiar ruta, recargar del disco, abrir con la app predeterminada).
+Guardar y `⋯` con lo secundario (copiar ruta, revelar en el árbol, abrir con la app predeterminada, recargar
+del disco).
 
 ### 7.7 Tarjetas y *stat tiles*
 
@@ -536,8 +559,9 @@ en la pestaña de vista previa, cada archivo que cambia y salta al cambio; nunca
 
 ### 8.9 Integración con el sistema y con GitPeach
 
-- "Abrir con la aplicación predeterminada" (`Process.Start` con `UseShellExecute=true`): toolbar, menú `⋯` del
-  archivo, nota de binarios y menú de la Home. Los enlaces `http(s)`/`mailto` también van al sistema.
+- "Abrir con la aplicación predeterminada" (`Process.Start` con `UseShellExecute=true`): menú del árbol, menú
+  `⋯` del archivo, nota de binarios y menú de la Home; ya no tiene botón en la toolbar. Los enlaces
+  `http(s)`/`mailto` también van al sistema.
 - Todo lo de git se delega en **GitPeach** (clic en la rama). `GitPeachLocator` la busca en: su
   `location.json`, junto al propio exe, `..\GitPeach`, `%LOCALAPPDATA%\Programs\GitPeach`,
   `%ProgramFiles%\GitPeach` y el `PATH`.
@@ -557,6 +581,29 @@ movido. "Acerca de" muestra la carpeta real y la abre.
 
 `state.json` también guarda la búsqueda de versiones (`CheckUpdates`, `LastUpdateCheck`, `LatestVersion`,
 `SkippedVersion`): como mucho una consulta a GitHub al día, y el botón reaparece al abrir sin volver a preguntar.
+
+### 8.11 Consola
+
+Terminales reales (pseudoterminal: ConPTY en Windows, `forkpty` en Linux; emulación xterm con
+`Iciclecreek.Avalonia.Terminal`) en la carpeta del proyecto: PowerShell 7 si está instalado, si no Windows
+PowerShell; en Linux el `$SHELL` del usuario.
+
+- **Abrir:** botón **Consola** de la toolbar o `Ctrl+J` (también desde dentro de una terminal). Si no hay
+  ninguna, abre una. "Abrir consola aquí" en el árbol abre otra ya en esa carpeta.
+- **Hasta 4 terminales** por proyecto ("+ Nueva"). Cada una con su cabecera de 24 px (`Border.termhead`: nombre
+  de la carpeta y ✕); la activa, un tono más clara (`#2d2e33`).
+- **Disposición** (con 2 o más): **Filas** (una sobre otra) · **Columnas** (lado a lado) · **Cuadrícula** (dos por
+  fila: con 4, una en cada esquina; con 3, la última ocupa la fila de abajo). Splitters de 4 px entre ellas.
+- **Lugar:** **Abajo** (bajo el código y el análisis) · **Página** (pestaña "Consola" en la franja de archivos,
+  justo después de Resumen, que toma el lugar del código y del análisis) · **Ventana** (aparte, "Consola —
+  proyecto"; cerrarla devuelve la consola abajo). Una vista simple de un archivo no tiene página.
+- Lugar, disposición y alto del panel se recuerdan en `state.json` (`ConsolePlace`, `ConsoleArrangement`,
+  `ConsoleHeight`) y valen para todos los proyectos.
+- **Ocultar no cierra:** el ✕ de la barra, `Ctrl+J` o cerrar la pestaña "Consola" la ocultan y las terminales
+  siguen corriendo. Una terminal termina con su ✕, cuando su shell sale (`exit`) o al cerrar el proyecto o la app.
+- Cambiar la consola de lugar nunca reinicia los shells: `ConsoleView` es una por proyecto y se mueve entera.
+- Colores: fondo `Code`, texto `Text`, selección `#33507a`, cursor azul y los 16 colores ANSI tomados de
+  [3.4](#34-colores-semánticos); fuente monoespaciada de 13 px.
 
 ---
 
@@ -585,6 +632,8 @@ muestran su atajo en el tooltip.
 | `Ctrl+E` · `Ctrl+S` | Editar / terminar · Guardar (solo editando) |
 | `Ctrl +` / `Ctrl −` / `Ctrl+0` | Zoom del texto |
 | `Alt+Z` | Ajuste de línea |
+| `Ctrl+J` | Mostrar u ocultar la consola |
+| `F2` · `Supr` · `Ctrl+C` / `X` / `V` | En el árbol: cambiar nombre, eliminar, copiar, cortar, pegar |
 | `Esc` | Cerrar diálogo / limpiar filtro o búsqueda |
 
 ---
@@ -654,6 +703,8 @@ muestran su atajo en el tooltip.
 | Diálogos | `Views/Dialogs.cs` |
 | Textos | `Services/Strings.cs` |
 | Atajos de F1 | `ViewModels/Shortcuts.cs` |
+| Consola (lugar, disposición, terminales) | `ViewModels/ConsoleViewModel.cs`, `Views/ConsoleView.axaml(.cs)` |
+| Acciones de archivo del árbol | `ViewModels/ProjectViewModel.FileActions.cs`, `Services/FileOps.cs` |
 | Colocación de la ventana | `App.axaml.cs` (`PlaceWindow`) |
 
 Si agregas un patrón de interfaz nuevo, documéntalo aquí.

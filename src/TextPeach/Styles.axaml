@@ -150,6 +150,11 @@
   <Style Selector="Button.mode.left">
     <Setter Property="CornerRadius" Value="3,0,0,3" />
   </Style>
+  <!-- Middle of a switch of three or more (the console's place and arrangement). -->
+  <Style Selector="Button.mode.mid">
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="BorderThickness" Value="0,1,1,1" />
+  </Style>
   <Style Selector="Button.mode.right">
     <Setter Property="CornerRadius" Value="0,3,3,0" />
     <Setter Property="BorderThickness" Value="0,1,1,1" />
@@ -310,6 +315,25 @@
 
   <Style Selector="GridSplitter">
     <Setter Property="Background" Value="#3a3c42" />
+  </Style>
+
+  <!-- Console: one header per terminal, the active one a step lighter. -->
+  <Style Selector="Border.termhead">
+    <Setter Property="Background" Value="#222327" />
+    <Setter Property="BorderBrush" Value="#3a3c42" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="Padding" Value="8,0,2,0" />
+    <Setter Property="Height" Value="24" />
+  </Style>
+  <Style Selector="Border.termhead.active">
+    <Setter Property="Background" Value="#2d2e33" />
+  </Style>
+  <Style Selector="Border.termhead TextBlock">
+    <Setter Property="Foreground" Value="#8a8d93" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+  <Style Selector="Border.termhead.active TextBlock">
+    <Setter Property="Foreground" Value="#d4d4d4" />
   </Style>
 
   <Style Selector="TextBlock.dim">
