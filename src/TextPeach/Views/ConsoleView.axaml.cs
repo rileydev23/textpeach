@@ -47,6 +47,7 @@ public partial class ConsoleView : UserControl
         console.PropertyChanged += OnConsoleChanged;
         console.FocusRequested += FocusTerminal;
         console.Disposed += OnDisposed;
+        ShellButton.Click += (_, _) => MenuPresenter.Show(ShellButton, Console.ShellMenu());
         // Ctrl+J hides the panel even from inside a shell (which would otherwise take it as a line feed).
         AddHandler(KeyDownEvent, (_, e) =>
         {
@@ -82,11 +83,10 @@ public partial class ConsoleView : UserControl
 
     private void AddPane(TerminalViewModel t)
     {
-        var (shell, args) = DefaultShell();
         var term = new TerminalControl
         {
-            Process = shell,
-            Args = args,
+            Process = t.Shell.Path,
+            Args = t.Shell.Args,
             StartingDirectory = t.StartDirectory,
             BufferSize = 5000,
             Background = Palette.Code,
@@ -270,21 +270,6 @@ public partial class ConsoleView : UserControl
     }
 
     // ------------------------------------------------------------ shell and colors
-
-    /// <summary>PowerShell 7 if installed, Windows PowerShell otherwise; on Linux and macOS the user's shell.</summary>
-    private static (string Shell, string[] Args) DefaultShell()
-    {
-        if (OperatingSystem.IsWindows())
-        {
-            var pwsh = (Environment.GetEnvironmentVariable("PATH") ?? "")
-                .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
-                .Select(d => Path.Combine(d.Trim('"'), "pwsh.exe"))
-                .FirstOrDefault(File.Exists);
-            return (pwsh ?? "powershell.exe", ["-NoLogo"]);
-        }
-        var shell = Environment.GetEnvironmentVariable("SHELL");
-        return (string.IsNullOrEmpty(shell) ? "/bin/bash" : shell, []);
-    }
 
     /// <summary>The sixteen terminal colors, taken from the Peach palette (docs/DISENO.md, 3.4).</summary>
     private static ThemeOptions Theme() => new()

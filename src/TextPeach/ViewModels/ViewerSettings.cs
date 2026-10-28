@@ -19,6 +19,7 @@ public sealed partial class ViewerSettings : ObservableObject
     [ObservableProperty] private ConsolePlace _consolePlace;
     [ObservableProperty] private ConsoleArrangement _consoleArrangement;
     [ObservableProperty] private double _consoleHeight;
+    [ObservableProperty] private string? _consoleShell;
 
     public ViewerSettings(ProjectStore store)
     {
@@ -29,6 +30,7 @@ public sealed partial class ViewerSettings : ObservableObject
         _consolePlace = Enum.TryParse<ConsolePlace>(store.State.ConsolePlace, ignoreCase: true, out var place) ? place : ConsolePlace.Panel;
         _consoleArrangement = Enum.TryParse<ConsoleArrangement>(store.State.ConsoleArrangement, ignoreCase: true, out var arr) ? arr : ConsoleArrangement.Rows;
         _consoleHeight = Math.Clamp(store.State.ConsoleHeight, 80, 2000);
+        _consoleShell = store.State.ConsoleShell;
     }
 
     partial void OnConsolePlaceChanged(ConsolePlace value)
@@ -40,6 +42,12 @@ public sealed partial class ViewerSettings : ObservableObject
     partial void OnConsoleArrangementChanged(ConsoleArrangement value)
     {
         _store.State.ConsoleArrangement = value.ToString().ToLowerInvariant();
+        _store.Save();
+    }
+
+    partial void OnConsoleShellChanged(string? value)
+    {
+        _store.State.ConsoleShell = value;
         _store.Save();
     }
 

@@ -31,7 +31,13 @@
         </StackPanel>
         <StackPanel Orientation="Horizontal" Spacing="10">
           <TextBlock Text="{l:L console.title}" FontWeight="SemiBold" VerticalAlignment="Center" />
-          <Button Content="{l:L console.new}" Command="{Binding NewCommand}" IsEnabled="{Binding CanAdd}" ToolTip.Tip="{l:L console.new.tip}" />
+          <!-- "+ Nueva" starts the default shell; "▾" picks another one (and makes it the default). -->
+          <StackPanel Orientation="Horizontal">
+            <Button Classes="mode left" Content="{l:L console.new}" Command="{Binding NewCommand}" IsEnabled="{Binding CanAdd}"
+                    ToolTip.Tip="{Binding NewTip}" Foreground="#d4d4d4" />
+            <Button x:Name="ShellButton" Classes="mode right" Content="▾" IsEnabled="{Binding CanAdd}" Padding="7,4"
+                    Foreground="#d4d4d4" ToolTip.Tip="{l:L console.shells.tip}" />
+          </StackPanel>
         </StackPanel>
       </DockPanel>
     </Border>

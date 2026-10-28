@@ -713,10 +713,10 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         if (c.IsPage && Docs.Contains(c)) SelectedDoc = c;
     }
 
-    /// <summary>Tree menu: a new terminal already in that folder.</summary>
-    public void OpenConsoleAt(string directory)
+    /// <summary>Tree menu: a new terminal already in that folder, with the shell picked there (or the default one).</summary>
+    public void OpenConsoleAt(string directory, ShellInfo? shell = null)
     {
-        if (Console.Add(directory) is null) return;
+        if (Console.Add(directory, shell) is null) return;
         if (Console.IsPage && Docs.Contains(Console)) SelectedDoc = Console;
     }
 

@@ -12,12 +12,13 @@ public enum ConsolePlace { Panel, Page, Window }
 public enum ConsoleArrangement { Rows, Columns, Grid }
 
 /// <summary>
-/// One shell. The view model only knows its title and folder: the pseudo-terminal and the process belong to the view
+/// One shell. The view model only knows which shell, its title and folder: the pseudo-terminal and the process belong to the view
 /// (<see cref="Views.ConsoleView"/>), which ends them when <see cref="Closed"/> fires.
 /// </summary>
 public sealed partial class TerminalViewModel : ObservableObject
 {
     public required string StartDirectory { get; init; }
+    public required ShellInfo Shell { get; init; }
     [ObservableProperty] private string _title = "";
     /// <summary>The terminal with the keyboard focus (or the last one that had it): its header is highlighted.</summary>
     [ObservableProperty] private bool _isActive;
@@ -37,7 +38,6 @@ public sealed partial class ConsoleViewModel : TabViewModel, IDisposable
     public const int MaxTerminals = 4;
 
     private readonly ViewerSettings _settings;
-    private int _created;
 
     public string Directory { get; }
     public string ProjectName { get; }
@@ -111,16 +111,34 @@ public sealed partial class ConsoleViewModel : TabViewModel, IDisposable
         if (ActiveTerminal is { } t) FocusRequested?.Invoke(t);
     }
 
-    /// <summary>A new terminal in <paramref name="directory"/> (the project's folder by default), shown right away.</summary>
-    public TerminalViewModel? Add(string? directory = null)
+    /// <summary>Every shell found on this machine, for the "+ Nueva ▾" menu and the tree's "Abrir consola aquí".</summary>
+    public IReadOnlyList<ShellInfo> Shells => Services.Shells.Available;
+
+    /// <summary>What "+ Nueva" starts: the shell chosen last (remembered for every project), else the first found.</summary>
+    public ShellInfo DefaultShell => Services.Shells.Find(_settings.ConsoleShell);
+
+    public string NewTip => Loc.F("console.new.tip", DefaultShell.Name, MaxTerminals);
+
+    /// <summary>
+    /// A new terminal in <paramref name="directory"/> (the project's folder by default) running <paramref name="shell"/>
+    /// (the default one if null), shown right away. Picking a shell makes it the default.
+    /// </summary>
+    public TerminalViewModel? Add(string? directory = null, ShellInfo? shell = null)
     {
         if (!CanAdd)
         {
             Notice?.Invoke(Loc.F("console.max", MaxTerminals));
             return null;
         }
+        if (shell is not null && shell.Id != _settings.ConsoleShell)
+        {
+            _settings.ConsoleShell = shell.Id;
+            OnPropertyChanged(nameof(DefaultShell));
+            OnPropertyChanged(nameof(NewTip));
+        }
+        shell ??= DefaultShell;
         var dir = directory is not null && System.IO.Directory.Exists(directory) ? directory : Directory;
-        var t = new TerminalViewModel { StartDirectory = dir, Title = TitleFor(dir) };
+        var t = new TerminalViewModel { StartDirectory = dir, Shell = shell, Title = TitleFor(shell, dir) };
         t.CloseCommand = new RelayCommand(() => Remove(t));
         Terminals.Add(t);
         Activate(t);
@@ -129,13 +147,20 @@ public sealed partial class ConsoleViewModel : TabViewModel, IDisposable
         return t;
     }
 
-    private string TitleFor(string dir)
+    /// <summary>"PowerShell 7 · textpeach", numbered when the same shell and folder are open twice.</summary>
+    private string TitleFor(ShellInfo shell, string dir)
     {
-        _created++;
         var name = Path.GetFileName(dir.TrimEnd('\\', '/'));
         if (string.IsNullOrEmpty(name)) name = dir;
-        return _created > 1 ? $"{name} ({_created})" : name;
+        var title = $"{shell.Name} · {name}";
+        int same = Terminals.Count(t => t.Title == title || t.Title.StartsWith(title + " ("));
+        return same > 0 ? $"{title} ({same + 1})" : title;
     }
+
+    /// <summary>The "▾" next to "+ Nueva": one entry per shell found, the default one marked.</summary>
+    public IReadOnlyList<MenuAction> ShellMenu(string? directory = null) =>
+        Shells.Select(s => MenuAction.Sync(s.Id == DefaultShell.Id ? Loc.F("console.shell.default", s.Name) : s.Name,
+            () => Add(directory, s))).ToList();
 
     public TerminalViewModel? ActiveTerminal => Terminals.FirstOrDefault(t => t.IsActive) ?? Terminals.LastOrDefault();
 
@@ -154,7 +179,6 @@ public sealed partial class ConsoleViewModel : TabViewModel, IDisposable
         t.Close();
         if (Terminals.Count == 0)
         {
-            _created = 0;
             IsOpen = false;
             return;
         }

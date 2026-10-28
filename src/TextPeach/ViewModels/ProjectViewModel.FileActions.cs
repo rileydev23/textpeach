@@ -42,7 +42,10 @@ public partial class ProjectViewModel
             items.Add(new MenuAction(Loc.T("pv.copyRel"), () => CopyTextAsync(node.RelPath)));
         }
         items.Add(MenuAction.Sync(Loc.T(OperatingSystem.IsWindows() ? "files.reveal" : "files.revealFolder"), () => RevealInSystem(node)));
-        items.Add(MenuAction.Sync(Loc.T("files.consoleHere"), () => OpenConsoleAt(DirOf(node))));
+        var here = DirOf(node);
+        items.Add(Console.Shells.Count > 1
+            ? MenuAction.Submenu(Loc.T("files.consoleHere"), Console.Shells.Select(s => MenuAction.Sync(s.Name, () => OpenConsoleAt(here, s))).ToList())
+            : MenuAction.Sync(Loc.T("files.consoleHere"), () => OpenConsoleAt(here)));
         items.Add(MenuAction.Separator);
         if (node is { IsDirectory: true })
             items.Add(MenuAction.Sync(Loc.T("ignore.folder"), () => IgnoreFolder(node)));

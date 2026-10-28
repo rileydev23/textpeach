@@ -105,7 +105,7 @@ about a new version. In English and Spanish.
 |---|---|
 | **Projects** | Persistent list of folders, favorites ★, collapsible groups, fuzzy filter, folder scanning (what it finds is saved as a group), drag and drop, several open tabs restored on restart. |
 | **Explorer** | Lazy file tree (skips `node_modules`, `bin`, `obj`, `.git`, `dist`…), quick filter by name, "Go to file" (Ctrl+P) with smart ranking. Right click for the usual: new file or folder, cut, copy, paste (also from and to File Explorer), duplicate, rename (F2), delete to the recycle bin (Del), copy path, show in Explorer and open with the default app. |
-| **Console** | Real terminals (PowerShell on Windows, your shell on Linux) in the project folder with **Ctrl+J**: below the code, as a page that takes the code's place, or in a separate window. Up to 4 at once, in rows, columns or a grid (one in each corner). |
+| **Console** | Real terminals in the project folder with **Ctrl+J**, with the shell you pick among the installed ones (PowerShell, cmd, Git Bash, WSL; on Linux bash, zsh, fish…), a different one in each if you like: below the code, as a page that takes the code's place, or in a separate window. Up to 4 at once, in rows, columns or a grid (one in each corner). |
 | **Git state** | Current branch (with commits to push or pull) in the status bar; modified, new, added, renamed, conflicted and ignored files with their color and letter, also on folders and tabs. Read-only: clicking the branch opens the repository in GitPeach. |
 | **Code viewer** | TextMate highlighting (the same grammars many modern editors use), line numbers, code folding, current line, zoom, word wrap, show spaces/tabs/line endings, find in file (Ctrl+F), go to line (Ctrl+G). |
 | **Rendered view** | Markdown (headings, lists, tasks, tables, quotes, code blocks, local images, links) and formatted plain text. **Rendered \| Code** switch. |
@@ -209,7 +209,8 @@ etc.) and shows it in green next to the name.
 - **Tree menu (right click):** open, open with the default app, new file or folder, cut/copy/paste
   (Ctrl+X/C/V), duplicate, copy path, show in Explorer, open console here, ignore the folder, rename (F2) and
   delete (Del, to the recycle bin and always confirmed).
-- **Console (Ctrl+J or the *Console* button):** a bar with **+ New** (up to 4 terminals), how they share the
+- **Console (Ctrl+J or the *Console* button):** a bar with **+ New** (up to 4 terminals; **▾** picks the
+  shell: PowerShell, cmd, Git Bash…), how they share the
   space (**Rows**, **Columns** or **Grid**) and where they go: **Below**, **Page** (a "Console" tab that takes the
   place of the code and the analysis) or **Window**. Hiding it does not close the terminals; moving it does not
   restart them either.

@@ -62,6 +62,8 @@ public sealed class AppState
     public string ConsolePlace { get; set; } = "panel";
     /// <summary>How several consoles share the space: "rows", "columns" or "grid".</summary>
     public string ConsoleArrangement { get; set; } = "rows";
+    /// <summary>The shell "+ Nueva" starts (<see cref="ShellInfo.Id"/>): the one chosen last; null for the first found.</summary>
+    public string? ConsoleShell { get; set; }
     /// <summary>Height of the console panel below the code, in DIP.</summary>
     public double ConsoleHeight { get; set; } = 240;
     /// <summary>Interface language: "en", "es" or null to follow Windows.</summary>

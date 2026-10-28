@@ -53,8 +53,8 @@
    ([10](#10-textos-y-tono)); clases, variables y comentarios en inglés.
 10. **Sin nombres de terceros.** La interfaz nunca menciona ni lanza aplicaciones de terceros. Lo permitido:
     **"Abrir con la aplicación predeterminada"** (delega en el sistema), el explorador de archivos del sistema,
-    la **Consola** (el shell del sistema: PowerShell en Windows, `$SHELL` en Linux) y GitPeach, la app hermana
-    para git.
+    la **Consola** (los shells instalados: PowerShell, cmd, Git Bash, WSL; en Linux los de `/etc/shells`) y
+    GitPeach, la app hermana para git.
 11. **Lo que solo se lee nunca parece editable.** Texto informativo, mensajes, atajos y documentos se muestran
     con `TextBlock`/`SelectableTextBlock`: sin cursor, sin fondo de campo, sin borde de foco. `TextBox` es solo
     para escribir.
@@ -585,13 +585,19 @@ movido. "Acerca de" muestra la carpeta real y la abre.
 ### 8.11 Consola
 
 Terminales reales (pseudoterminal: ConPTY en Windows, `forkpty` en Linux; emulación xterm con
-`Iciclecreek.Avalonia.Terminal`) en la carpeta del proyecto: PowerShell 7 si está instalado, si no Windows
-PowerShell; en Linux el `$SHELL` del usuario.
+`Iciclecreek.Avalonia.Terminal`) en la carpeta del proyecto, con cualquiera de los shells instalados
+(`Services/Shells.cs`, detectados una vez): en Windows **PowerShell 7**, **Windows PowerShell**, **cmd**,
+**Git Bash** (junto al `git.exe` del `PATH` o en las carpetas de siempre; arranca en el proyecto con
+`CHERE_INVOKING=1`) y **WSL** si hay una distribución; en Linux y macOS el `$SHELL` del usuario primero y luego los
+de `/etc/shells` (uno por nombre, sin `nologin`/`false`).
 
 - **Abrir:** botón **Consola** de la toolbar o `Ctrl+J` (también desde dentro de una terminal). Si no hay
   ninguna, abre una. "Abrir consola aquí" en el árbol abre otra ya en esa carpeta.
-- **Hasta 4 terminales** por proyecto ("+ Nueva"). Cada una con su cabecera de 24 px (`Border.termhead`: nombre
-  de la carpeta y ✕); la activa, un tono más clara (`#2d2e33`).
+- **Hasta 4 terminales** por proyecto, cada una con su propio shell (una cmd y una PowerShell a la vez, por
+  ejemplo). **+ Nueva** abre el shell predeterminado y **▾**, pegado a su derecha, lista todos (el
+  predeterminado marcado); elegir uno lo deja como predeterminado (`ConsoleShell` en `state.json`). "Abrir
+  consola aquí" del árbol también es un submenú con los shells. Cabecera de 24 px por terminal
+  (`Border.termhead`: "Shell · carpeta" y ✕); la activa, un tono más clara (`#2d2e33`).
 - **Disposición** (con 2 o más): **Filas** (una sobre otra) · **Columnas** (lado a lado) · **Cuadrícula** (dos por
   fila: con 4, una en cada esquina; con 3, la última ocupa la fila de abajo). Splitters de 4 px entre ellas.
 - **Lugar:** **Abajo** (bajo el código y el análisis) · **Página** (pestaña "Consola" en la franja de archivos,
