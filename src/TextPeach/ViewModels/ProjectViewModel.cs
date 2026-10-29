@@ -29,6 +29,8 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
     public ObservableCollection<FileHit> FilterHits { get; } = new();
     public ObservableCollection<TabViewModel> Docs { get; } = new();
     public SummaryViewModel Summary { get; }
+    /// <summary>The project's terminals: below the code, as a page of the file strip or in a window.</summary>
+    public ConsoleViewModel Console { get; }
 
     [ObservableProperty] private TabViewModel? _selectedDoc;
     [ObservableProperty] private FileNode? _selectedNode;
@@ -71,6 +73,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
     public OpenFileViewModel? SelectedFile => SelectedDoc as OpenFileViewModel;
     public bool HasFile => SelectedFile is not null;
     public bool IsSummary => SelectedDoc is SummaryViewModel;
+    public bool IsConsole => SelectedDoc is ConsoleViewModel;
     public bool IsFilesMode => !IsSearchMode && !IsRecentMode;
     public bool HasRecent => Recent.Count > 0;
     private readonly ProjectPrefs _prefs;
@@ -106,6 +109,14 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         ToolTip = file ?? path;
         Summary = new SummaryViewModel(path);
         Recent.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasRecent));
+        Console = new ConsoleViewModel(path, Title, settings, allowsPage: file is null);
+        Console.CloseCommand = new RelayCommand(() => Console.IsOpen = false);
+        Console.Notice += m => Notice = m;
+        Console.ToggleRequested += ToggleConsole;
+        Console.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(ConsoleViewModel.IsOpen) or nameof(ConsoleViewModel.Place)) SyncConsoleTab();
+        };
 
         if (file is not null)
         {
@@ -130,6 +141,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         OnPropertyChanged(nameof(SelectedFile));
         OnPropertyChanged(nameof(HasFile));
         OnPropertyChanged(nameof(IsSummary));
+        OnPropertyChanged(nameof(IsConsole));
         if (value is not OpenFileViewModel) CaretText = "";
         SaveSession();
     }
@@ -138,6 +150,7 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
     {
         // Switching files is a jump Alt+← can undo, like in most editors.
         if (oldValue is not null && newValue is not null) PushBack(LocationOf(oldValue));
+        if (newValue is ConsoleViewModel && oldValue is not null and not ConsoleViewModel) _beforeConsole = oldValue;
     }
 
     partial void OnIsSearchModeChanged(bool value) => OnPropertyChanged(nameof(IsFilesMode));
@@ -306,6 +319,8 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
     public async Task<bool> CloseDocAsync(TabViewModel tab)
     {
         if (!tab.Closable) return false;
+        // Closing the console's page only hides it: its shells keep running until closed one by one.
+        if (tab is ConsoleViewModel c) { c.IsOpen = false; return true; }
         if (tab is OpenFileViewModel f && f.IsEditing && !await f.FinishEditingAsync()) return false;
         int idx = Docs.IndexOf(tab);
         if (idx < 0) return false;
@@ -675,6 +690,59 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         OpenExternal(f.FullPath);
     }
 
+    // ------------------------------------------------------------ console
+
+    private TabViewModel? _beforeConsole;
+
+    /// <summary>
+    /// "Consola" in the toolbar (Ctrl+J): opens the console where it lives, with a terminal if it has none. A second
+    /// press hides the panel, or leaves the page for the tab that was shown before it.
+    /// </summary>
+    [RelayCommand]
+    private void ToggleConsole()
+    {
+        var c = Console;
+        if (c is { IsOpen: true, IsPanel: true }) { c.IsOpen = false; return; }
+        if (c is { IsOpen: true, IsPage: true } && IsConsole)
+        {
+            SelectedDoc = _beforeConsole is not null && Docs.Contains(_beforeConsole) ? _beforeConsole : Docs.FirstOrDefault(d => d != c);
+            EditorFocusRequested?.Invoke();
+            return;
+        }
+        c.Show();
+        if (c.IsPage && Docs.Contains(c)) SelectedDoc = c;
+    }
+
+    /// <summary>Tree menu: a new terminal already in that folder, with the shell picked there (or the default one).</summary>
+    public void OpenConsoleAt(string directory, ShellInfo? shell = null)
+    {
+        if (Console.Add(directory, shell) is null) return;
+        if (Console.IsPage && Docs.Contains(Console)) SelectedDoc = Console;
+    }
+
+    /// <summary>The console's page is a tab of the file strip (right after the summary) only while it is open there.</summary>
+    private void SyncConsoleTab()
+    {
+        var c = Console;
+        bool want = c is { IsOpen: true, IsPage: true };
+        bool has = Docs.Contains(c);
+        if (want && !has)
+        {
+            Docs.Insert(IsSingleFile ? 0 : 1, c);
+            SelectedDoc = c;
+        }
+        else if (!want && has)
+        {
+            bool wasSelected = SelectedDoc == c;
+            int idx = Docs.IndexOf(c);
+            Docs.Remove(c);
+            if (wasSelected)
+                SelectedDoc = _beforeConsole is not null && Docs.Contains(_beforeConsole) ? _beforeConsole : Docs[Math.Clamp(idx - 1, 0, Docs.Count - 1)];
+        }
+        // Hiding the console must not leave the keyboard in a shell nobody sees.
+        if (!c.IsOpen) EditorFocusRequested?.Invoke();
+    }
+
     /// <summary>Links in rendered documents: project files open here, anything else goes to the system.</summary>
     public void OpenLink(string baseRelDir, string target)
     {
@@ -901,15 +969,6 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
 
     // ------------------------------------------------------------ ignored folders
 
-    public IReadOnlyList<MenuAction> MenuForNode(FileNode? node)
-    {
-        var items = new List<MenuAction>();
-        if (node is { IsDirectory: true, IsPlaceholder: false })
-            items.Add(MenuAction.Sync(Loc.T("ignore.folder"), () => IgnoreFolder(node)));
-        items.Add(new MenuAction(Loc.T("ignore.edit"), EditIgnoredAsync));
-        return items;
-    }
-
     /// <summary>Tree context menu: leave this folder out of the project from now on.</summary>
     [RelayCommand]
     private void IgnoreFolder(FileNode? node)
@@ -1056,7 +1115,8 @@ public partial class ProjectViewModel : TabViewModel, IDisposable
         _searchDebounce?.Cancel();
         _scanCts?.Cancel();
         Summary.Cancel();
+        Console.Dispose();
         _watcher?.Dispose();
-        foreach (var d in Docs.OfType<IDisposable>()) d.Dispose();
+        foreach (var d in Docs.OfType<IDisposable>().Where(d => d != Console)) d.Dispose();
     }
 }

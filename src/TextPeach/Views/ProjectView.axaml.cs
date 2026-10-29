@@ -42,8 +42,16 @@ public partial class ProjectView : UserControl
         FileTree.ContextRequested += (_, e) =>
         {
             e.Handled = true;
-            var node = (e.Source as Control)?.FindAncestorOfType<TreeViewItem>(includeSelf: true)?.DataContext as FileNode;
-            if (_vm is not null) MenuPresenter.Show(FileTree, _vm.MenuForNode(node));
+            var item = (e.Source as Control)?.FindAncestorOfType<TreeViewItem>(includeSelf: true);
+            var node = item?.DataContext as FileNode;
+            // Right click selects the row first, as in the Explorer (without opening it: that is a left click).
+            if (node is { IsPlaceholder: false } && _vm is not null) _vm.RevealInTree(node.RelPath);
+            if (_vm is not null) MenuPresenter.Show(item ?? (Control)FileTree, _vm.MenuForNode(node));
+        };
+        FileTree.KeyDown += OnTreeKeyDown;
+        ConsoleSplitter.DragCompleted += (_, _) =>
+        {
+            if (_settings is not null) _settings.ConsoleHeight = Columns.RowDefinitions[2].ActualHeight;
         };
         DocTabs.DoubleTapped += (_, e) =>
         {
@@ -92,6 +100,25 @@ public partial class ProjectView : UserControl
         };
 
         DataContextChanged += (_, _) => Attach();
+    }
+
+    /// <summary>The usual file keys on the tree: F2 renames, Delete deletes, Ctrl+C / Ctrl+X / Ctrl+V copy, cut and paste.</summary>
+    private void OnTreeKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (_vm is null) return;
+        var node = FileTree.SelectedItem as FileNode;
+        if (node is { IsPlaceholder: true }) node = null;
+        bool ctrl = e.KeyModifiers == KeyModifiers.Control;
+        switch (e.Key)
+        {
+            case Key.F2 when node is not null && e.KeyModifiers == KeyModifiers.None: _ = _vm.RenameAsync(node); break;
+            case Key.Delete when node is not null && e.KeyModifiers == KeyModifiers.None: _ = _vm.DeleteAsync(node); break;
+            case Key.C when ctrl && node is not null: _ = _vm.ClipAsync(node, cut: false); break;
+            case Key.X when ctrl && node is not null: _ = _vm.ClipAsync(node, cut: true); break;
+            case Key.V when ctrl: _ = _vm.PasteAsync(node); break;
+            default: return;
+        }
+        e.Handled = true;
     }
 
     private static T? Item<T>(Avalonia.Interactivity.RoutedEventArgs e) where T : class =>
@@ -151,6 +178,7 @@ public partial class ProjectView : UserControl
             _vm.SearchFocusRequested -= OnSearchFocus;
             _vm.FilterFocusRequested -= OnFilterFocus;
             _vm.EditorFocusRequested -= OnEditorFocus;
+            _vm.Console.PropertyChanged -= OnConsoleChanged;
         }
         if (_settings is not null) _settings.PropertyChanged -= OnSettingsChanged;
 
@@ -162,10 +190,14 @@ public partial class ProjectView : UserControl
             _vm.SearchFocusRequested += OnSearchFocus;
             _vm.FilterFocusRequested += OnFilterFocus;
             _vm.EditorFocusRequested += OnEditorFocus;
+            _vm.Console.PropertyChanged += OnConsoleChanged;
+            // Built now, so a terminal opened from this project has its view ready to take the focus.
+            ConsoleView.For(_vm.Console);
         }
         if (_settings is not null) _settings.PropertyChanged += OnSettingsChanged;
         ApplySettings();
         ApplyLayout();
+        ApplyConsole();
         SwitchTo(_vm?.SelectedFile);
         // Project shortcuts live on this view, so something inside it must own the focus.
         if (_vm is not null)
@@ -175,7 +207,7 @@ public partial class ProjectView : UserControl
         }
     }
 
-    private GridLength _sidebarWidth = new(260);
+    private GridLength _sidebarWidth = new(260), _analysisWidth = new(290);
 
     /// <summary>
     /// A simple view has no sidebar: its column collapses, and the width the user gave the project tabs comes back
@@ -197,11 +229,56 @@ public partial class ProjectView : UserControl
             sidebar.MinWidth = 160;
             Columns.ColumnDefinitions[1].Width = new GridLength(4);
         }
+
+        // The console's page takes the analysis column too: the whole stage next to the tree is the terminals'.
+        var analysis = Columns.ColumnDefinitions[4];
+        if (_vm is { IsConsole: true })
+        {
+            if (analysis.Width.Value > 0) _analysisWidth = analysis.Width;
+            analysis.MinWidth = 0;
+            analysis.Width = new GridLength(0);
+            Columns.ColumnDefinitions[3].Width = new GridLength(0);
+        }
+        else if (analysis.Width.Value == 0)
+        {
+            analysis.Width = _analysisWidth;
+            analysis.MinWidth = 200;
+            Columns.ColumnDefinitions[3].Width = new GridLength(4);
+        }
+    }
+
+    private void OnConsoleChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(ConsoleViewModel.IsOpen) or nameof(ConsoleViewModel.Place)) ApplyConsole();
+    }
+
+    /// <summary>
+    /// Puts this project's console where it lives: the panel below the code (rows 1-2 of the grid) or the page host.
+    /// A window is the console's own business (ConsoleView); here both hosts just let go of it.
+    /// </summary>
+    private void ApplyConsole()
+    {
+        var console = _vm?.Console;
+        Border? target = console switch
+        {
+            { IsOpen: true, IsPanel: true } => ConsolePanelHost,
+            { IsOpen: true, IsPage: true } => ConsolePageHost,
+            _ => null,
+        };
+        foreach (var host in new[] { ConsolePanelHost, ConsolePageHost })
+            if (host != target && host.Child is not null) host.Child = null;
+        if (target is not null && console is not null) ConsoleView.For(console).PlaceIn(target);
+
+        bool panel = target == ConsolePanelHost;
+        ConsoleSplitter.IsVisible = panel;
+        Columns.RowDefinitions[1].Height = new GridLength(panel ? 4 : 0);
+        Columns.RowDefinitions[2].Height = new GridLength(panel ? _settings?.ConsoleHeight ?? 240 : 0);
+        Columns.RowDefinitions[2].MinHeight = panel ? 80 : 0;
     }
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(ProjectViewModel.SelectedDoc)) SwitchTo(_vm?.SelectedFile);
+        if (e.PropertyName == nameof(ProjectViewModel.SelectedDoc)) { SwitchTo(_vm?.SelectedFile); ApplyLayout(); }
         else if (e.PropertyName == nameof(ProjectViewModel.SearchRows)) UpdateRuler();
     }
 

@@ -64,6 +64,8 @@ public partial class App : Application
                 vm.Shutdown();
             };
             desktop.MainWindow = window;
+            // Console windows (one per project at most) never keep the app alive on their own.
+            desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
         }
         base.OnFrameworkInitializationCompleted();
     }
@@ -76,9 +78,11 @@ public partial class App : Application
     private static void RunDebugActions(MainWindowViewModel vm)
     {
         var spec = Environment.GetEnvironmentVariable("TEXTPEACH_DEBUG_ACTIONS");
-        if (string.IsNullOrEmpty(spec) || vm.SelectedTab is not ProjectViewModel p) return;
-        Avalonia.Threading.DispatcherTimer.RunOnce(() =>
+        if (string.IsNullOrEmpty(spec)) return;
+        Avalonia.Threading.DispatcherTimer.RunOnce(async () =>
         {
+            // The tab shown by then: the one asked for on the command line may still be opening when the window opens.
+            if (vm.SelectedTab is not ProjectViewModel p) return;
             foreach (var action in spec.Split(';'))
             {
                 if (action.StartsWith("search:")) { p.FocusSearchCommand.Execute(null); p.SearchText = action[7..]; }
@@ -90,6 +94,17 @@ public partial class App : Application
                 else if (action.StartsWith("tree:")) p.RevealInTree(action[5..]);
                 else if (action == "about") vm.ShowAboutCommand.Execute(null);
                 else if (action.StartsWith("reveal:")) p.SelectedFile?.Reveal(int.Parse(action[7..]));
+                else if (action.StartsWith("shell:")) p.OpenConsoleAt(p.RootPath, Shells.Find(action[6..]));
+                else if (action.StartsWith("wait:")) await Task.Delay(int.Parse(action[5..]));
+                // console:page:4:grid → the console as a page with four terminals, two by two.
+                else if (action.StartsWith("console"))
+                {
+                    var parts = action.Split(':');
+                    if (parts.Length > 3) p.Console.ArrangeCommand.Execute(parts[3]);
+                    if (parts.Length > 1) p.Console.MoveToCommand.Execute(parts[1]);
+                    else p.ToggleConsoleCommand.Execute(null);
+                    for (int n = parts.Length > 2 ? int.Parse(parts[2]) : 1; p.Console.Terminals.Count < n;) p.Console.Add();
+                }
             }
         }, TimeSpan.FromSeconds(2));
     }

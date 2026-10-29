@@ -58,6 +58,14 @@ public sealed class AppState
     public bool WordWrap { get; set; }
     /// <summary>Diff view: both versions side by side (true) or one column (false).</summary>
     public bool DiffSideBySide { get; set; } = true;
+    /// <summary>Where the console shows up: "panel" (below the code), "page" (a tab of its own) or "window".</summary>
+    public string ConsolePlace { get; set; } = "panel";
+    /// <summary>How several consoles share the space: "rows", "columns" or "grid".</summary>
+    public string ConsoleArrangement { get; set; } = "rows";
+    /// <summary>The shell "+ Nueva" starts (<see cref="ShellInfo.Id"/>): the one chosen last; null for the first found.</summary>
+    public string? ConsoleShell { get; set; }
+    /// <summary>Height of the console panel below the code, in DIP.</summary>
+    public double ConsoleHeight { get; set; } = 240;
     /// <summary>Interface language: "en", "es" or null to follow Windows.</summary>
     public string? Language { get; set; }
     /// <summary>Look for a new version on GitHub at most once a day.</summary>

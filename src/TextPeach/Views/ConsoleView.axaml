@@ -1,0 +1,47 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="using:TextPeach.Services"
+             xmlns:vm="using:TextPeach.ViewModels"
+             x:Class="TextPeach.Views.ConsoleView"
+             x:DataType="vm:ConsoleViewModel"
+             Background="#1b1c1f">
+  <DockPanel>
+    <!-- Console bar: new terminal on the left; how the terminals share the space and where the console lives, on the right. -->
+    <Border DockPanel.Dock="Top" Background="#26272b" BorderBrush="#3a3c42" BorderThickness="0,0,0,1" Padding="8,4">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="10">
+          <StackPanel Orientation="Horizontal" IsVisible="{Binding HasSeveral}">
+            <Button Classes="mode left" Classes.active="{Binding IsRows}" Content="{l:L console.rows}"
+                    Command="{Binding ArrangeCommand}" CommandParameter="Rows" ToolTip.Tip="{l:L console.rows.tip}" />
+            <Button Classes="mode mid" Classes.active="{Binding IsColumns}" Content="{l:L console.columns}"
+                    Command="{Binding ArrangeCommand}" CommandParameter="Columns" ToolTip.Tip="{l:L console.columns.tip}" />
+            <Button Classes="mode right" Classes.active="{Binding IsGrid}" Content="{l:L console.grid}"
+                    Command="{Binding ArrangeCommand}" CommandParameter="Grid" ToolTip.Tip="{l:L console.grid.tip}" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal">
+            <Button Classes="mode left" Classes.active="{Binding IsPanel}" Content="{l:L console.panel}"
+                    Command="{Binding MoveToCommand}" CommandParameter="Panel" ToolTip.Tip="{l:L console.panel.tip}" />
+            <Button Classes="mode mid" Classes.active="{Binding IsPage}" Content="{l:L console.page}" IsVisible="{Binding AllowsPage}"
+                    Command="{Binding MoveToCommand}" CommandParameter="Page" ToolTip.Tip="{l:L console.page.tip}" />
+            <Button Classes="mode right" Classes.active="{Binding IsWindow}" Content="{l:L console.window}"
+                    Command="{Binding MoveToCommand}" CommandParameter="Window" ToolTip.Tip="{l:L console.window.tip}" />
+          </StackPanel>
+          <Button Classes="flat" Content="✕" Command="{Binding HideCommand}" IsVisible="{Binding !IsWindow}"
+                  Foreground="#8a8d93" FontSize="10" Padding="6,2" VerticalAlignment="Center" ToolTip.Tip="{l:L console.hide.tip}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <TextBlock Text="{l:L console.title}" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <!-- "+ Nueva" starts the default shell; "▾" picks another one (and makes it the default). -->
+          <StackPanel Orientation="Horizontal">
+            <Button Classes="mode left" Content="{l:L console.new}" Command="{Binding NewCommand}" IsEnabled="{Binding CanAdd}"
+                    ToolTip.Tip="{Binding NewTip}" Foreground="#d4d4d4" />
+            <Button x:Name="ShellButton" Classes="mode right" Content="▾" IsEnabled="{Binding CanAdd}" Padding="7,4"
+                    Foreground="#d4d4d4" ToolTip.Tip="{l:L console.shells.tip}" />
+          </StackPanel>
+        </StackPanel>
+      </DockPanel>
+    </Border>
+    <!-- The terminals, laid out in code (ConsoleView.Rebuild) -->
+    <Border x:Name="Panes" />
+  </DockPanel>
+</UserControl>

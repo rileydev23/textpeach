@@ -26,6 +26,8 @@
     <PackageReference Include="AvaloniaEdit.TextMate" Version="11.4.1" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.*" />
     <PackageReference Include="Markdig" Version="1.4.2" />
+    <!-- The console: an xterm emulator on a real pseudo-terminal (ConPTY / forkpty). 1.0.x is the Avalonia 11 line. -->
+    <PackageReference Include="Iciclecreek.Avalonia.Terminal" Version="1.0.12" />
   </ItemGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets/app.ico" />
